@@ -8,6 +8,7 @@ import Voices from "@/components/Voices";
 import Craft from "@/components/Craft";
 import Specs from "@/components/Specs";
 import FinalCTA from "@/components/FinalCTA";
+import NewsletterEvents from "@/components/NewsletterEvents";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import Toast from "@/components/Toast";
@@ -28,6 +29,7 @@ export default function Home() {
       <Voices />
       <Craft />
       <Specs />
+      <NewsletterEvents />
       <FinalCTA />
       <Footer />
       <ProgressRail />

@@ -9,7 +9,7 @@ export default function FinalCTA() {
     <section id="cta" className="relative">
       <div className="max-w-[1480px] mx-auto px-6 md:px-14 py-28 md:py-44 text-center">
         <div className="reveal">
-          <div className="text-[11px] tracking-[.34em] font-body font-light opacity-70">06 · BRING THE STORY HOME</div>
+          <div className="text-[11px] tracking-[.34em] font-body font-light opacity-70">07 · BRING THE STORY HOME</div>
 
           <h2
             className="mt-10 font-display font-black display-tight"

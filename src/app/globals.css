@@ -58,28 +58,53 @@ body { font-family: var(--font-body); font-weight: 300; -webkit-font-smoothing: 
 .book-stage { perspective: 2400px; perspective-origin: 50% 50%; }
 .book {
   position: relative;
-  width: min(380px, 78vw);
-  aspect-ratio: 3 / 4.3;
+  width: min(420px, 80vw); /* adjusted for square-like layout */
+  aspect-ratio: 1750 / 1792;
   transform-style: preserve-3d;
   transform: rotateX(6deg) rotateY(-22deg) rotateZ(-1.5deg);
-  transition: transform .9s cubic-bezier(.2,.7,.2,1);
+  transition: transform 1.5s cubic-bezier(0.2, 0.9, 0.2, 1);
   will-change: transform;
 }
-.book:hover { transform: rotateX(4deg) rotateY(-14deg) rotateZ(-.5deg) translateY(-6px); }
-.book__face, .book__spine, .book__pages, .book__back {
+.book:hover { 
+  transform: rotateX(8deg) rotateY(-10deg) rotateZ(0deg) translateY(-10px) translateZ(20px); 
+}
+.book__spine, .book__pages, .book__back {
   position: absolute; inset: 0; backface-visibility: hidden;
 }
+.book__inside {
+  position: absolute;
+  top: 4px; bottom: 4px; left: 2px; right: 4px;
+  transform: translateZ(12px);
+  background: var(--ivory);
+  border-radius: 2px 4px 4px 2px;
+  overflow: hidden;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+}
 .book__face {
-  background:
-    radial-gradient(120% 80% at 30% 20%, rgba(238,224,191,.22), transparent 60%),
-    linear-gradient(160deg, #2a3853 0%, #1b2538 100%);
-  color: var(--ivory);
+  position: absolute; inset: 0;
+  transform: translateZ(14px);
+  transform-origin: left center;
+  transition: transform 1.6s cubic-bezier(0.2, 0.9, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.book:hover .book__face {
+  transform: translateZ(14px) rotateY(-165deg);
+}
+.book__face-front {
+  position: absolute; inset: 0; backface-visibility: hidden;
   border-radius: 2px 6px 6px 2px;
+  overflow: hidden;
+  background: var(--night);
   box-shadow:
     inset 8px 0 14px -10px rgba(0,0,0,.55),
     inset -1px 0 0 rgba(238,224,191,.06);
-  transform: translateZ(14px);
-  overflow: hidden;
+}
+.book__face-back {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  transform: rotateY(180deg);
+  background: var(--ivory);
+  border-radius: 6px 2px 2px 6px;
+  box-shadow: inset -8px 0 14px -10px rgba(0,0,0,.2);
 }
 .book__spine {
   width: 28px; left: -28px;
@@ -89,23 +114,89 @@ body { font-family: var(--font-body); font-weight: 300; -webkit-font-smoothing: 
   box-shadow: inset 0 0 0 1px rgba(238,224,191,.08);
 }
 .book__pages {
-  right: -16px; width: 16px;
+  position: absolute;
+  top: 4px; bottom: 4px;
+  right: -8px; width: 24px;
+  transform: rotateY(90deg);
   background: repeating-linear-gradient(90deg, #f1e4c6 0 1px, #e3d2a8 1px 2px);
-  transform: rotateY(90deg) translateX(-8px);
-  transform-origin: left center;
+  box-shadow: inset 0 10px 20px rgba(0,0,0,0.05), inset 0 -10px 20px rgba(0,0,0,0.05);
+}
+.book__top {
+  position: absolute;
+  left: 2px; right: 4px;
+  top: -8px; height: 24px;
+  transform: rotateX(90deg);
+  background: repeating-linear-gradient(0deg, #f1e4c6 0 1px, #e3d2a8 1px 2px);
+}
+.book__bottom {
+  position: absolute;
+  left: 2px; right: 4px;
+  bottom: -8px; height: 24px;
+  transform: rotateX(-90deg);
+  background: repeating-linear-gradient(0deg, #f1e4c6 0 1px, #e3d2a8 1px 2px);
 }
 .book__back {
   transform: translateZ(-14px);
-  background: linear-gradient(160deg, #1d2740, #141c30);
+  background: var(--ivory); /* matched the back cover to the light theme */
   border-radius: 2px 6px 6px 2px;
+  box-shadow: inset -1px 0 0 rgba(0,0,0,0.1);
 }
 .book__shadow {
-  position: absolute; inset: auto 6% -8% 6%;
-  height: 70px;
-  background: radial-gradient(closest-side, rgba(35,47,72,.45), transparent 70%);
-  filter: blur(18px);
+  position: absolute; inset: auto -2% -12% -2%;
+  height: 80px;
+  background: radial-gradient(closest-side, rgba(20,25,35,.45), transparent 80%);
+  filter: blur(24px);
   transform: translateZ(-30px);
   z-index: -1;
+  transition: all 1.5s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.book:hover .book__shadow {
+  transform: translateZ(-40px) translateY(12px) scale(1.05);
+  filter: blur(32px);
+  background: radial-gradient(closest-side, rgba(20,25,35,.25), transparent 80%);
+}
+
+/* Dynamic Lighting */
+.lighting-cover {
+  background: linear-gradient(110deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 80%),
+              inset 8px 0 16px -10px rgba(0,0,0,0.7);
+  opacity: 1;
+  transition: opacity 1.6s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.book:hover .lighting-cover {
+  opacity: 0.1;
+}
+
+.lighting-pg1 {
+  background: linear-gradient(to left, 
+    rgba(0,0,0,0.7) 0%, 
+    rgba(0,0,0,0.1) 4%, 
+    rgba(255,255,255,0.3) 7%, 
+    rgba(255,255,255,0) 15%, 
+    rgba(0,0,0,0.05) 100%
+  ),
+  inset -12px 0 16px -10px rgba(0,0,0,0.3);
+  opacity: 0.2;
+  transition: opacity 1.6s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.book:hover .lighting-pg1 {
+  opacity: 1;
+}
+
+.lighting-pg2 {
+  background: linear-gradient(to right, 
+    rgba(0,0,0,0.7) 0%, 
+    rgba(0,0,0,0.1) 4%, 
+    rgba(255,255,255,0.4) 8%, 
+    rgba(255,255,255,0) 18%, 
+    rgba(0,0,0,0.05) 100%
+  ),
+  inset 12px 0 16px -10px rgba(0,0,0,0.4);
+  opacity: 0.5;
+  transition: opacity 1.6s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.book:hover .lighting-pg2 {
+  opacity: 1;
 }
 
 /* Foil shimmer */
