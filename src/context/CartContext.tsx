@@ -19,7 +19,7 @@ interface CartContextType {
   isCheckingOut: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (item?: Partial<CartItem>) => void;
+  addItem: () => void;
   changeQty: (index: number, delta: number) => void;
   removeItem: (index: number) => void;
   dismissToast: () => void;
