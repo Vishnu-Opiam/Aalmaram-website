@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 
 export default function StickyBar() {
-  const { addItem, productPrice } = useCart();
+  const { addItem, productPrice, productImage } = useCart();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -27,9 +27,11 @@ export default function StickyBar() {
       <div className="max-w-[1480px] mx-auto px-6 md:px-14 py-3 flex items-center gap-6">
         <div className="hidden md:flex items-center gap-4 min-w-0">
           <div
-            className="w-9 h-12 rounded-sm shrink-0"
+            className="w-9 h-12 rounded-sm shrink-0 overflow-hidden"
             style={{ background: "linear-gradient(160deg,#2a3853,#0f1828)", boxShadow: "inset 1px 0 0 rgba(238,224,191,.12)" }}
-          />
+          >
+            <img src={productImage} alt="Thumbnail" className="w-full h-full object-cover" />
+          </div>
           <div className="min-w-0">
             <div className="font-display italic text-[15px] truncate">Nandu in Muziris</div>
             <div className="text-[11px] tracking-[.22em] opacity-75 font-body">First edition · Signed</div>

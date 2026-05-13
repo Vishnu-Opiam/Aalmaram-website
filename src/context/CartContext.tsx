@@ -10,6 +10,7 @@ export interface CartItem {
   price: number;
   compareAt: number;
   qty: number;
+  image: string;
 }
 
 interface CartContextType {
@@ -27,6 +28,7 @@ interface CartContextType {
   totalCount: number;
   subtotal: number;
   productPrice: number;
+  productImage: string;
 }
 
 const DEFAULT_PRODUCT: CartItem = {
@@ -36,6 +38,7 @@ const DEFAULT_PRODUCT: CartItem = {
   price: 1480,
   compareAt: 1650,
   qty: 1,
+  image: "/books/Cover.png",
 };
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -57,6 +60,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         
         const shopifyPrice = getPrice(variant.price);
         const shopifyCompareAt = variant.compareAtPrice ? getPrice(variant.compareAtPrice) : shopifyPrice;
+        const shopifyImage = "/books/Cover.png";
         
         setProductTemplate({
           id: variant.id,
@@ -65,12 +69,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           price: shopifyPrice,
           compareAt: shopifyCompareAt,
           qty: 1,
+          image: shopifyImage,
         });
 
         // Update items if they were added before the fetch
         setItems(prev => prev.map(it => {
           if (it.id === "nandu-01") {
-            return { ...it, id: variant.id, price: shopifyPrice, compareAt: shopifyCompareAt, title: prod.title };
+            return { ...it, id: variant.id, price: shopifyPrice, compareAt: shopifyCompareAt, title: prod.title, image: shopifyImage };
           }
           return it;
         }));
@@ -123,7 +128,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, isOpen, toastVisible, isCheckingOut, openCart, closeCart, addItem, changeQty, removeItem, dismissToast, checkout, totalCount, subtotal, productPrice: productTemplate.price }}
+      value={{ items, isOpen, toastVisible, isCheckingOut, openCart, closeCart, addItem, changeQty, removeItem, dismissToast, checkout, totalCount, subtotal, productPrice: productTemplate.price, productImage: productTemplate.image }}
     >
       {children}
     </CartContext.Provider>

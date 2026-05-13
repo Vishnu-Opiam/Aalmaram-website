@@ -56,7 +56,7 @@ export default function CartDrawer() {
             items.map((it, idx) => (
               <article key={it.id + idx} className="flex gap-5">
                 <div
-                  className="shrink-0 rounded-sm"
+                  className="shrink-0 rounded-sm overflow-hidden"
                   style={{
                     aspectRatio: "3/4.3",
                     width: 64,
@@ -64,14 +64,7 @@ export default function CartDrawer() {
                     boxShadow: "inset 1px 0 0 rgba(238,224,191,.12)",
                   }}
                 >
-                  <div className="h-full grid place-items-center">
-                    <div
-                      className="font-display italic text-[8px] tracking-[.22em] text-center px-1 leading-tight"
-                      style={{ color: "#c6a15b" }}
-                    >
-                      Nandu<br />in<br />Muziris
-                    </div>
-                  </div>
+                  <img src={it.image} alt={it.title} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-display italic text-[17px] leading-tight">{it.title}</div>
