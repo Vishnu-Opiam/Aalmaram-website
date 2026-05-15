@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { usePreOrder } from "@/context/PreOrderContext";
 
 export default function StickyBar() {
-  const { addItem, productPrice, productImage } = useCart();
+  const { productPrice, productImage } = useCart();
+  const { openModal } = usePreOrder();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -34,19 +36,15 @@ export default function StickyBar() {
           </div>
           <div className="min-w-0">
             <div className="font-display italic text-[15px] truncate">Nandu in Muziris</div>
-            <div className="text-[11px] tracking-[.22em] opacity-75 font-body">First edition · Signed</div>
+            <div className="text-[11px] tracking-[.22em] opacity-75 font-body">First edition</div>
           </div>
         </div>
-        <div className="hidden sm:flex items-baseline gap-2 ml-auto font-body">
-          <span className="font-display text-xl">₹ {productPrice.toLocaleString("en-IN")}</span>
-          <span className="text-[11px] tracking-[.2em] opacity-60 line-through">₹ 1,650</span>
-        </div>
         <button
-          onClick={addItem}
-          className="ml-auto sm:ml-0 px-6 py-2.5 text-[12px] tracking-[.22em] font-body"
+          onClick={openModal}
+          className="ml-auto px-6 py-2.5 text-[12px] tracking-[.22em] font-body"
           style={{ background: "var(--ivory)", color: "var(--night)" }}
         >
-          Add to cart
+          Pre-order now
         </button>
       </div>
     </div>

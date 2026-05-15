@@ -16,7 +16,7 @@ export default function Ethos() {
 
             <div className="mt-10 max-w-[58ch] font-body font-light leading-loose text-[17px] space-y-6" style={{ color: "#2a3855" }}>
               <p>
-                Aalmaram is named for the banyan — the tree that walks on its own roots, sending each
+                Aalmaram is named for the banyan - the tree that walks on its own roots, sending each
                 new branch down into the earth to become another trunk. Our books are the same: stories
                 passed grandmother to grandchild on moonlit verandahs, rooted again in archival paper
                 and a slow, deliberate craft.

@@ -1,9 +1,11 @@
 "use client";
 
 import { useCart } from "@/context/CartContext";
+import { usePreOrder } from "@/context/PreOrderContext";
 
 export default function FinalCTA() {
-  const { addItem, productPrice } = useCart();
+  const { productPrice } = useCart();
+  const { openModal } = usePreOrder();
 
   return (
     <section id="cta" className="relative">
@@ -25,8 +27,8 @@ export default function FinalCTA() {
           </p>
 
           <div className="mt-14 flex justify-center">
-            <button onClick={addItem} className="btn-night px-14 py-5 text-[13px] tracking-[.3em] font-body font-normal">
-              Add to cart · ₹ {productPrice.toLocaleString("en-IN")}
+            <button onClick={openModal} className="btn-night px-14 py-5 text-[13px] tracking-[.3em] font-body font-normal">
+              Pre-order now
             </button>
           </div>
 

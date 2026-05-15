@@ -11,7 +11,7 @@ export default function Voices() {
           <div className="md:col-span-8 reveal">
             <blockquote className="font-display italic font-medium text-night leading-[1.1]" style={{ fontSize: "clamp(28px, 3.4vw, 44px)" }}>
               <span style={{ color: "var(--gold)", fontFamily: "'Boska', serif", fontStyle: "italic" }}>&ldquo;</span>
-              A book that does not hurry. It does what the verandah did — it lets the story arrive at the child&apos;s own pace.
+              A book that does not hurry. It lets the story arrive at the child&apos;s own pace.
               When my daughter closed the cover she asked, very quietly, can we visit the river tomorrow.
               <span style={{ color: "var(--gold)" }}>&rdquo;</span>
             </blockquote>

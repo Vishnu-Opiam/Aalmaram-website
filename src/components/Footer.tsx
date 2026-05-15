@@ -12,19 +12,11 @@ export default function Footer() {
             <div className="mt-2 font-display italic text-[15px] opacity-80">Books from Kerala · since 2026</div>
             <p className="mt-8 max-w-[40ch] font-body font-light leading-loose text-[14.5px] opacity-85">
               A small press in Fort Kochi making picture books, chapter books, and cultural objects
-              for the children of Kerala — and the families who carry Kerala with them.
+              for the children of Kerala - and the families who carry Kerala with them.
             </p>
           </div>
 
-          <div className="col-span-6 md:col-span-3">
-            <div className="text-[10.5px] tracking-[.28em] font-body font-light opacity-65">CATALOGUE</div>
-            <ul className="mt-5 space-y-3 font-body font-light text-[14.5px]">
-              <li><a href="#" className="qlink">Picture books</a></li>
-              <li><a href="#" className="qlink">Chapter books</a></li>
-              <li><a href="#" className="qlink">Cultural objects</a></li>
-              <li><a href="#" className="qlink">Gift sets</a></li>
-            </ul>
-          </div>
+          
 
           <div className="col-span-6 md:col-span-3">
             <div className="text-[10.5px] tracking-[.28em] font-body font-light opacity-65">PRESS</div>

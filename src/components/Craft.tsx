@@ -4,14 +4,14 @@ const details = [
     color: "var(--gold)",
     lineColor: "var(--kathakali)",
     title: "Archival Italian paper, 140 gsm.",
-    text: "Acid-free, FSC-certified. It holds ink the way river silt holds the morning — without letting go.",
+    text: "Acid-free, FSC-certified. It holds ink the way river silt holds the morning - without letting go.",
   },
   {
     numeral: "ii.",
     color: "var(--kathakali)",
     lineColor: "var(--gold)",
     title: "Hot foil stamping in Malabar gold.",
-    text: "Six small foil moments — only where the page asks for them. The spine, the first letter of chapter one, the moon over the backwater.",
+    text: "Six small foil moments - only where the page asks for them. The spine, the first letter of chapter one, the moon over the backwater.",
   },
   {
     numeral: "iii.",
@@ -24,14 +24,14 @@ const details = [
     numeral: "iv.",
     color: "var(--lagoon)",
     lineColor: "var(--lagoon)",
-    title: "Bilingual setting — Malayalam & English.",
-    text: "The Malayalam is set first, in Manjari; the English follows, in Anderson Grotesk. The grandparent reads aloud, the child reads along.",
+    title: "Typeset to be read aloud.",
+    text: "Set generously in Anderson Grotesk, with type sized so the grandparent reads aloud and the child reads along.",
   },
   {
     numeral: "v.",
     color: "var(--moss)",
     lineColor: "var(--moss)",
-    title: "Signed and numbered first edition.",
+    title: "Numbered first edition.",
     text: "Each copy in the first edition is numbered by hand on the colophon, of an issue of one thousand two hundred.",
   },
   {
@@ -39,7 +39,7 @@ const details = [
     color: "var(--earth)",
     lineColor: "var(--earth)",
     title: "Wrapped in handmade khadi sleeve.",
-    text: "So it arrives the way an heirloom should — quietly, in cloth, tied with a single length of jute.",
+    text: "So it arrives the way an heirloom should - quietly, in cloth, tied with a single length of jute.",
   },
 ];
 
@@ -51,7 +51,7 @@ export default function Craft() {
           <div className="md:col-span-7">
             <div className="text-[11px] tracking-[.34em] font-body font-light opacity-70">04 · TACTILE CRAFT</div>
             <h3 className="mt-6 font-display font-black display-tight" style={{ fontSize: "clamp(34px, 4.6vw, 58px)" }}>
-              A book made <span className="font-display italic font-medium" style={{ color: "var(--gold)" }}>to be held —</span> and to outlast the holder.
+              A book made <span className="font-display italic font-medium" style={{ color: "var(--gold)" }}>to be held -</span> and to outlast the holder.
             </h3>
           </div>
           <div className="md:col-span-5 md:pl-10 font-body font-light leading-loose text-[15.5px] opacity-90">

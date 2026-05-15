@@ -34,7 +34,7 @@ interface CartContextType {
 const DEFAULT_PRODUCT: CartItem = {
   id: "nandu-01",
   title: "Nandu in Muziris",
-  subtitle: "First edition · Signed · Numbered",
+  subtitle: "First edition · Numbered",
   price: 1480,
   compareAt: 1650,
   qty: 1,
@@ -65,7 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setProductTemplate({
           id: variant.id,
           title: prod.title,
-          subtitle: "First edition · Signed · Numbered",
+          subtitle: "First edition · Numbered",
           price: shopifyPrice,
           compareAt: shopifyCompareAt,
           qty: 1,

@@ -2,9 +2,11 @@
 
 import BookCover from "./BookCover";
 import { useCart } from "@/context/CartContext";
+import { usePreOrder } from "@/context/PreOrderContext";
 
 export default function Hero() {
-  const { addItem, productPrice } = useCart();
+  const { productPrice } = useCart();
+  const { openModal } = usePreOrder();
 
   return (
     <section className="relative" id="hero">
@@ -37,39 +39,25 @@ export default function Hero() {
               style={{ color: "#2a3855" }}
             >
               <p>
-                Set in the ancient port of Muziris, Nandu in Muziris follows a young crow named Nandu after a storm destroys his home. As he journeys through a world of traders, travellers, and many cultures, he begins searching not just for a new nest — but for a place to belong.
+                Set in the ancient port of Muziris, Nandu in Muziris follows a young crow named Nandu after a storm destroys his home. As he journeys through a world of traders, travellers, and many cultures, he begins searching not just for a new nest - but for a place to belong.
               </p>
               <p className="mt-4">
-                A beautifully illustrated children’s book rooted in Kerala’s history, culture, and memory. (for now)
+                A beautifully illustrated children's book rooted in Kerala's history, culture, and memory.
               </p>
             </div>
 
             <div className="mt-12 flex flex-wrap items-center gap-6">
               <button
-                onClick={addItem}
+                onClick={openModal}
                 className="btn-night px-10 py-4 text-[12.5px] tracking-[.26em] font-body font-normal"
               >
-                Add to cart · ₹ {productPrice.toLocaleString("en-IN")}
+                Pre-order now
               </button>
               <a href="#story" className="qlink text-[12.5px] tracking-[.26em] font-body font-light">
-                Read the first page
+                About Us
               </a>
             </div>
 
-            <div className="mt-16 grid grid-cols-3 max-w-[520px] gap-6">
-              <div>
-                <div className="font-display text-2xl" style={{ color: "var(--gold)" }}>84</div>
-                <div className="mt-1 text-[10.5px] tracking-[.24em] font-body font-light opacity-80">PAGES · ARCHIVAL</div>
-              </div>
-              <div>
-                <div className="font-display text-2xl" style={{ color: "var(--kathakali)" }}>12</div>
-                <div className="mt-1 text-[10.5px] tracking-[.24em] font-body font-light opacity-80">FOIL PLATES</div>
-              </div>
-              <div>
-                <div className="font-display text-2xl" style={{ color: "var(--spice)" }}>02</div>
-                <div className="mt-1 text-[10.5px] tracking-[.24em] font-body font-light opacity-80">LANGUAGES · ML/EN</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

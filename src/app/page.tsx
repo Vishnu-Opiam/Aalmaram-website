@@ -5,8 +5,6 @@ import Marquee from "@/components/Marquee";
 import Ethos from "@/components/Ethos";
 import Gallery from "@/components/Gallery";
 import Voices from "@/components/Voices";
-import Craft from "@/components/Craft";
-import Specs from "@/components/Specs";
 import FinalCTA from "@/components/FinalCTA";
 import NewsletterEvents from "@/components/NewsletterEvents";
 import Footer from "@/components/Footer";
@@ -15,6 +13,7 @@ import Toast from "@/components/Toast";
 import ProgressRail from "@/components/ProgressRail";
 import RevealObserver from "@/components/RevealObserver";
 import SmoothScroll from "@/components/SmoothScroll";
+import PreOrderModal from "@/components/PreOrderModal";
 
 export default function Home() {
   return (
@@ -27,14 +26,13 @@ export default function Home() {
       <Ethos />
       <Gallery />
       <Voices />
-      <Craft />
-      <Specs />
       <NewsletterEvents />
       <FinalCTA />
       <Footer />
       <ProgressRail />
       <CartDrawer />
       <Toast />
+      <PreOrderModal />
       <RevealObserver />
       <SmoothScroll />
     </>

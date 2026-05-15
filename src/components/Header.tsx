@@ -23,7 +23,6 @@ export default function Header() {
           </a>
 
           <div className="flex items-center justify-end gap-7 text-[12px] tracking-[.2em] font-body font-light">
-            <a href="#" className="qlink hidden md:inline">Malayalam</a>
             <button onClick={openCart} className="flex items-center gap-2 qlink">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.5L21 8H6" />

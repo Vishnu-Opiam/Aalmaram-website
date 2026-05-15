@@ -289,3 +289,99 @@ body { font-family: var(--font-body); font-weight: 300; -webkit-font-smoothing: 
 a { text-decoration: none; color: inherit; }
 
 input { background: transparent; }
+
+/* Pre-order modal */
+.preorder-scrim {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(35,47,72,.55);
+  backdrop-filter: blur(4px);
+  animation: preorder-fadein .35s ease forwards;
+}
+
+.preorder-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 71;
+  width: min(480px, 92vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  background-color: var(--ivory);
+  background-image:
+    radial-gradient(rgba(107,74,46,.05) 1px, transparent 1.2px),
+    radial-gradient(rgba(35,47,72,.04) 1px, transparent 1.2px);
+  background-size: 6px 6px, 13px 13px;
+  background-position: 0 0, 3px 4px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  box-shadow:
+    0 40px 100px -30px rgba(35,47,72,.4),
+    0 0 0 1px rgba(35,47,72,.08);
+  animation: preorder-slideup .45s cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+.preorder-close {
+  position: absolute;
+  top: 1.2rem; right: 1.5rem;
+}
+
+.preorder-field {
+  text-align: left;
+}
+
+.preorder-input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px 0;
+  border: none;
+  border-bottom: 1px solid rgba(35,47,72,.25);
+  background: transparent;
+  color: var(--night);
+  font-weight: 300;
+  outline: none;
+  transition: border-color .3s ease;
+}
+
+.preorder-input:focus {
+  border-bottom-color: var(--kathakali);
+}
+
+.preorder-input::placeholder {
+  color: rgba(35,47,72,.35);
+}
+
+.preorder-input:disabled {
+  opacity: .5;
+}
+
+.preorder-success {
+  animation: preorder-fadein .5s ease forwards;
+}
+
+.preorder-check-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px; height: 64px;
+  border-radius: 999px;
+  border: 2px solid var(--kathakali);
+  animation: preorder-pop .5s cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+@keyframes preorder-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes preorder-slideup {
+  from { opacity: 0; transform: translate(-50%, -46%); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@keyframes preorder-pop {
+  0%   { transform: scale(.6); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
