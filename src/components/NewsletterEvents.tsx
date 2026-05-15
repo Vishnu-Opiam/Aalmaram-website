@@ -1,4 +1,4 @@
-import { listEvents, type EventRecord } from "@/lib/shopify";
+import { listEvents, type EventRecord } from "@/lib/events";
 import NewsletterForm from "./NewsletterForm";
 
 export const dynamic = "force-dynamic";

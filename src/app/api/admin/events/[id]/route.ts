@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthed } from "@/lib/auth";
-import { updateEvent, deleteEvent, type EventInput } from "@/lib/shopify";
+import { updateEvent, deleteEvent, type EventInput } from "@/lib/events";
 
 function sanitize(body: unknown): EventInput {
   const b = (body ?? {}) as Record<string, unknown>;
