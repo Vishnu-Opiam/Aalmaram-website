@@ -11,9 +11,9 @@ export default function Gallery() {
             </h3>
           </div>
           <div className="md:col-span-5 md:pl-10 font-body font-light leading-loose text-[15.5px] opacity-90">
-            Every interior spread is illustrated in a palette drawn from a Kerala afternoon - fern,
-            lagoon, spice, earth. Plates are tipped onto archival sheets so the paper can hold the
-            weight of the colour.
+            Every interior spread is drawn in warm, earthy tones - spice, turmeric, earth, lagoon - that
+            capture the feeling of a Kerala afternoon. Original artwork is printed on archival paper
+            to preserve the depth of colour.
           </div>
         </div>
 

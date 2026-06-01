@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { usePreOrder } from "@/context/PreOrderContext";
 
 export default function StickyBar() {
-  const { productPrice, productImage } = useCart();
-  const { openModal } = usePreOrder();
+  const { productPrice, productImage, buyNow, isCheckingOut } = useCart();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -40,11 +38,12 @@ export default function StickyBar() {
           </div>
         </div>
         <button
-          onClick={openModal}
+          onClick={buyNow}
+          disabled={isCheckingOut}
           className="ml-auto px-6 py-2.5 text-[12px] tracking-[.22em] font-body"
           style={{ background: "var(--ivory)", color: "var(--night)" }}
         >
-          Pre-order now
+          {isCheckingOut ? "Connecting…" : "Book now"}
         </button>
       </div>
     </div>

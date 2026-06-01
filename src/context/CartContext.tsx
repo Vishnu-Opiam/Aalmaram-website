@@ -25,6 +25,7 @@ interface CartContextType {
   removeItem: (index: number) => void;
   dismissToast: () => void;
   checkout: () => void;
+  buyNow: () => void;
   totalCount: number;
   subtotal: number;
   productPrice: number;
@@ -123,12 +124,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items]);
 
+  const buyNow = useCallback(async () => {
+    setIsCheckingOut(true);
+    try {
+      const checkoutUrl = await createCheckout(productTemplate.id, 1);
+      window.location.href = checkoutUrl;
+    } catch (e) {
+      console.error(e);
+      setIsCheckingOut(false);
+    }
+  }, [productTemplate]);
+
   const totalCount = items.reduce((s, i) => s + i.qty, 0);
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, isOpen, toastVisible, isCheckingOut, openCart, closeCart, addItem, changeQty, removeItem, dismissToast, checkout, totalCount, subtotal, productPrice: productTemplate.price, productImage: productTemplate.image }}
+      value={{ items, isOpen, toastVisible, isCheckingOut, openCart, closeCart, addItem, changeQty, removeItem, dismissToast, checkout, buyNow, totalCount, subtotal, productPrice: productTemplate.price, productImage: productTemplate.image }}
     >
       {children}
     </CartContext.Provider>

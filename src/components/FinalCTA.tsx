@@ -1,11 +1,9 @@
 "use client";
 
 import { useCart } from "@/context/CartContext";
-import { usePreOrder } from "@/context/PreOrderContext";
 
 export default function FinalCTA() {
-  const { productPrice } = useCart();
-  const { openModal } = usePreOrder();
+  const { productPrice, buyNow, isCheckingOut } = useCart();
 
   return (
     <section id="cta" className="relative">
@@ -27,8 +25,8 @@ export default function FinalCTA() {
           </p>
 
           <div className="mt-14 flex justify-center">
-            <button onClick={openModal} className="btn-night px-14 py-5 text-[13px] tracking-[.3em] font-body font-normal">
-              Pre-order now
+            <button onClick={buyNow} disabled={isCheckingOut} className="btn-night px-14 py-5 text-[13px] tracking-[.3em] font-body font-normal">
+              {isCheckingOut ? "Connecting…" : "Book now"}
             </button>
           </div>
 

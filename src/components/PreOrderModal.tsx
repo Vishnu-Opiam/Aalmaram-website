@@ -125,11 +125,11 @@ export default function PreOrderModal() {
         ) : (
           <div className="preorder-form-content">
             <div className="text-[10.5px] tracking-[.34em] font-body font-light opacity-60">
-              PRE-ORDER
+              BOOK NOW
             </div>
 
             <h3 className="mt-5 font-display font-black text-[28px] md:text-[34px] display-tight" style={{ color: "var(--night)" }}>
-              Reserve your<br />
+              Book your<br />
               <span className="font-display italic font-medium" style={{ color: "var(--kathakali)" }}>copy</span>.
             </h3>
 
@@ -180,7 +180,7 @@ export default function PreOrderModal() {
                 disabled={stage === "submitting"}
                 className="btn-night w-full py-4 text-[12px] tracking-[.28em] font-body font-normal mt-6"
               >
-                {stage === "submitting" ? "Saving your copy…" : "Pre-order now"}
+                {stage === "submitting" ? "Saving your copy…" : "Book now"}
               </button>
             </form>
 

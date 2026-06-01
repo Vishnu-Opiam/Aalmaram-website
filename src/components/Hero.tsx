@@ -5,8 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { usePreOrder } from "@/context/PreOrderContext";
 
 export default function Hero() {
-  const { productPrice } = useCart();
-  const { openModal } = usePreOrder();
+  const { productPrice, buyNow, isCheckingOut } = useCart();
 
   return (
     <section className="relative" id="hero">
@@ -48,10 +47,11 @@ export default function Hero() {
 
             <div className="mt-12 flex flex-wrap items-center gap-6">
               <button
-                onClick={openModal}
+                onClick={buyNow}
+                disabled={isCheckingOut}
                 className="btn-night px-10 py-4 text-[12.5px] tracking-[.26em] font-body font-normal"
               >
-                Pre-order now
+                {isCheckingOut ? "Connecting…" : "Book now"}
               </button>
               <a href="#story" className="qlink text-[12.5px] tracking-[.26em] font-body font-light">
                 About Us
