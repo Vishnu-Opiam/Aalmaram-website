@@ -100,7 +100,7 @@ export default function CartDrawer() {
             onClick={checkout}
             disabled={isCheckingOut}
           >
-            {isCheckingOut ? "Connecting to Shopify..." : "Checkout · secure payment"}
+            {isCheckingOut ? "Sending to secure checkout…" : "Checkout · secure payment"}
           </button>
           <button onClick={closeCart} className="w-full py-2 text-[11px] tracking-[.28em] font-body font-light opacity-80 qlink">
             Continue browsing
