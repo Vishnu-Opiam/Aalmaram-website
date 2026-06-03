@@ -17,8 +17,13 @@ export default function Header() {
 
           <a
             href="#top"
-            className="font-display text-3xl md:text-4xl font-black text-night text-center display-tight tracking-tight"
+            className="flex items-center justify-center gap-3 font-display text-3xl md:text-4xl font-black text-night display-tight tracking-tight"
           >
+            <img
+              src="/books/Layer 5.png"
+              alt="Aalmaram logo"
+              className="h-9 w-9 md:h-11 md:w-11 object-contain"
+            />
             Aalmaram
           </a>
 
