@@ -26,7 +26,7 @@ export default function FinalCTA() {
 
           <div className="mt-14 flex justify-center">
             <button onClick={buyNow} disabled={isCheckingOut} className="btn-night px-14 py-5 text-[13px] tracking-[.3em] font-body font-normal">
-              {isCheckingOut ? "Connecting…" : "Book now"}
+              {isCheckingOut ? "Placing order…" : "Order now"}
             </button>
           </div>
 

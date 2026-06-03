@@ -51,7 +51,7 @@ export default function Hero() {
                 disabled={isCheckingOut}
                 className="btn-night px-10 py-4 text-[12.5px] tracking-[.26em] font-body font-normal"
               >
-                {isCheckingOut ? "Connecting…" : "Book now"}
+                {isCheckingOut ? "Placing order…" : "Order now"}
               </button>
               <a href="#story" className="qlink text-[12.5px] tracking-[.26em] font-body font-light">
                 About Us

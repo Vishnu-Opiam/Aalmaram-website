@@ -43,7 +43,7 @@ export default function StickyBar() {
           className="ml-auto px-6 py-2.5 text-[12px] tracking-[.22em] font-body"
           style={{ background: "var(--ivory)", color: "var(--night)" }}
         >
-          {isCheckingOut ? "Connecting…" : "Book now"}
+          {isCheckingOut ? "Placing order…" : "Order now"}
         </button>
       </div>
     </div>
