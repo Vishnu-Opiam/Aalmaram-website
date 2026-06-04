@@ -16,7 +16,7 @@ interface Buyer {
   pincode: string;
 }
 
-const UPI_VPA = process.env.NEXT_PUBLIC_UPI_VPA || "";
+const UPI_VPA = process.env.NEXT_PUBLIC_UPI_VPA || "7736682079@sbi";
 const UPI_NAME = process.env.NEXT_PUBLIC_UPI_NAME || "Aalmaram";
 const QR_IMAGE = "/QrCode.jpeg";
 
@@ -41,6 +41,7 @@ export default function CheckoutPay({
   );
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -213,23 +214,46 @@ export default function CheckoutPay({
               Add <span className="italic">{orderId}</span> as the note.
             </p>
 
-            <div className="mt-6 p-4 bg-white inline-block" style={{ border: "1px solid rgba(35,47,72,.15)" }}>
-              <img
-                src={QR_IMAGE}
-                alt="UPI QR code"
-                className="block w-[320px] sm:w-[420px] h-auto"
-                style={{ objectFit: "contain" }}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.opacity = "0.2";
+            <div className="mt-6 inline-flex flex-col items-stretch w-[320px] sm:w-[420px] max-w-full">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(UPI_VPA);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1800);
+                  } catch {}
                 }}
-              />
+                aria-label={`Copy UPI ID ${UPI_VPA}`}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white font-body text-[14.5px] transition-colors"
+                style={{ border: "1px solid rgba(35,47,72,.15)", borderBottom: "none" }}
+              >
+                <span className="flex flex-col items-start min-w-0">
+                  <span className="text-[9.5px] tracking-[.28em] opacity-60 uppercase">UPI ID</span>
+                  <span className="font-display italic truncate" style={{ color: "var(--night)" }}>
+                    {UPI_VPA}
+                  </span>
+                </span>
+                <span
+                  className="text-[11px] tracking-[.24em] font-body shrink-0"
+                  style={{ color: copied ? "var(--burnt, #e07030)" : "rgba(35,47,72,.7)" }}
+                >
+                  {copied ? "COPIED" : "COPY"}
+                </span>
+              </button>
+              <div className="p-4 bg-white" style={{ border: "1px solid rgba(35,47,72,.15)" }}>
+                <img
+                  src={QR_IMAGE}
+                  alt="UPI QR code"
+                  className="block w-full h-auto"
+                  style={{ objectFit: "contain" }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.opacity = "0.2";
+                  }}
+                />
+              </div>
             </div>
 
-            {UPI_VPA && (
-              <div className="mt-5 font-body text-[13px] opacity-80">
-                UPI ID: <span className="font-display italic">{UPI_VPA}</span>
-              </div>
-            )}
             {upiLink && (
               <a
                 href={upiLink}
