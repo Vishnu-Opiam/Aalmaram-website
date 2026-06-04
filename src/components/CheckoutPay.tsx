@@ -12,6 +12,7 @@ interface Buyer {
   email: string;
   address: string;
   city: string;
+  state: string;
   pincode: string;
 }
 

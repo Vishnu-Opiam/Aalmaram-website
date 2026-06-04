@@ -12,10 +12,11 @@ interface Buyer {
   email: string;
   address: string;
   city: string;
+  state: string;
   pincode: string;
 }
 
-const empty: Buyer = { name: "", phone: "", email: "", address: "", city: "", pincode: "" };
+const empty: Buyer = { name: "", phone: "", email: "", address: "", city: "", state: "", pincode: "" };
 
 function fmt(n: number) {
   return "₹ " + n.toLocaleString("en-IN");
@@ -35,6 +36,7 @@ export default function CheckoutPage() {
     /.+@.+\..+/.test(buyer.email) &&
     buyer.address.trim() &&
     buyer.city.trim() &&
+    buyer.state.trim() &&
     buyer.pincode.trim().length >= 6;
 
   if (step === "pay") {
@@ -99,8 +101,9 @@ export default function CheckoutPage() {
               autoComplete="street-address"
               textarea
             />
-            <div className="grid sm:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-3 gap-6">
               <Field label="City" value={buyer.city} onChange={update("city")} autoComplete="address-level2" />
+              <Field label="State" value={buyer.state} onChange={update("state")} autoComplete="address-level1" />
               <Field
                 label="Pincode"
                 value={buyer.pincode}
