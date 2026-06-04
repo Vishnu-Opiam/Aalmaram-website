@@ -385,3 +385,28 @@ input { background: transparent; }
   100% { transform: scale(1); opacity: 1; }
 }
 
+
+/* Legal pages */
+.legal-prose h2 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: var(--night);
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  margin-top: 2.2rem;
+  margin-bottom: 0.6rem;
+}
+.legal-prose h3 {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--night);
+  font-size: 17px;
+  margin-top: 1.4rem;
+  margin-bottom: 0.4rem;
+}
+.legal-prose p { margin-bottom: 0.9rem; }
+.legal-prose ul { list-style: disc; padding-left: 1.4rem; margin-bottom: 1rem; }
+.legal-prose ol { list-style: decimal; padding-left: 1.4rem; margin-bottom: 1rem; }
+.legal-prose li { margin-bottom: 0.35rem; }
+.legal-prose a { color: var(--kathakali); text-decoration: underline; text-underline-offset: 3px; }
+.legal-prose strong { font-weight: 500; color: var(--night); }

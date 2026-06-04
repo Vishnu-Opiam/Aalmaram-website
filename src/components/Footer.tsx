@@ -16,8 +16,6 @@ export default function Footer() {
             </p>
           </div>
 
-          
-
           <div className="col-span-6 md:col-span-3">
             <div className="text-[10.5px] tracking-[.28em] font-body font-light opacity-65">PRESS</div>
             <ul className="mt-5 space-y-3 font-body font-light text-[14.5px]">
@@ -25,6 +23,17 @@ export default function Footer() {
               <li><a href="#" className="qlink">The studio</a></li>
               <li><a href="#" className="qlink">Stockists</a></li>
               <li><a href="#" className="qlink">Journal</a></li>
+            </ul>
+          </div>
+
+          <div className="col-span-6 md:col-span-3">
+            <div className="text-[10.5px] tracking-[.28em] font-body font-light opacity-65">HELP</div>
+            <ul className="mt-5 space-y-3 font-body font-light text-[14.5px]">
+              <li><a href="/contact" className="qlink">Contact us</a></li>
+              <li><a href="/shipping" className="qlink">Shipping</a></li>
+              <li><a href="/refund" className="qlink">Refunds &amp; Cancellations</a></li>
+              <li><a href="/terms" className="qlink">Terms &amp; Conditions</a></li>
+              <li><a href="/privacy" className="qlink">Privacy Policy</a></li>
             </ul>
           </div>
         </div>
@@ -35,7 +44,7 @@ export default function Footer() {
         >
           <span>© 2026 Aalmaram Books · Fort Kochi, Kerala</span>
           <span>Set in Boska &amp; Anderson Grotesk · Printed on archival paper</span>
-          <span><a href="#" className="qlink">Privacy</a> · <a href="#" className="qlink">Terms</a></span>
+          <span><a href="/privacy" className="qlink">Privacy</a> · <a href="/terms" className="qlink">Terms</a> · <a href="/refund" className="qlink">Refunds</a> · <a href="/shipping" className="qlink">Shipping</a> · <a href="/contact" className="qlink">Contact</a></span>
         </div>
       </div>
     </footer>
