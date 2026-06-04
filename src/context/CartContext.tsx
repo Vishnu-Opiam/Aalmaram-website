@@ -1,7 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-import { getFirstProduct, createCheckout } from "@/lib/shopify";
+import { getFirstProduct } from "@/lib/shopify";
+
+const STORAGE_KEY = "aalmaram_cart_v1";
 
 export interface CartItem {
   id: string;
@@ -26,6 +28,7 @@ interface CartContextType {
   dismissToast: () => void;
   checkout: () => void;
   buyNow: () => void;
+  clearCart: () => void;
   totalCount: number;
   subtotal: number;
   productPrice: number;
@@ -46,11 +49,27 @@ const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [productTemplate, setProductTemplate] = useState<CartItem>(DEFAULT_PRODUCT);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setItems(JSON.parse(raw));
+    } catch {}
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {}
+  }, [items, hydrated]);
 
   useEffect(() => {
     getFirstProduct().then((prod) => {
@@ -112,35 +131,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const checkout = useCallback(async () => {
+  const checkout = useCallback(() => {
     if (items.length === 0) return;
     setIsCheckingOut(true);
-    try {
-      const checkoutUrl = await createCheckout(items[0].id, items[0].qty);
-      window.location.href = checkoutUrl;
-    } catch (e) {
-      console.error(e);
-      setIsCheckingOut(false);
-    }
+    window.location.href = "/checkout";
   }, [items]);
 
-  const buyNow = useCallback(async () => {
+  const buyNow = useCallback(() => {
+    setItems((prev) => {
+      const existing = prev.find((it) => it.id === productTemplate.id);
+      if (existing) {
+        return prev.map((it) => (it.id === productTemplate.id ? { ...it, qty: it.qty + 1 } : it));
+      }
+      return [...prev, { ...productTemplate }];
+    });
     setIsCheckingOut(true);
-    try {
-      const checkoutUrl = await createCheckout(productTemplate.id, 1);
-      window.location.href = checkoutUrl;
-    } catch (e) {
-      console.error(e);
-      setIsCheckingOut(false);
-    }
+    window.location.href = "/checkout";
   }, [productTemplate]);
+
+  const clearCart = useCallback(() => setItems([]), []);
 
   const totalCount = items.reduce((s, i) => s + i.qty, 0);
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, isOpen, toastVisible, isCheckingOut, openCart, closeCart, addItem, changeQty, removeItem, dismissToast, checkout, buyNow, totalCount, subtotal, productPrice: productTemplate.price, productImage: productTemplate.image }}
+      value={{ items, isOpen, toastVisible, isCheckingOut, openCart, closeCart, addItem, changeQty, removeItem, dismissToast, checkout, buyNow, clearCart, totalCount, subtotal, productPrice: productTemplate.price, productImage: productTemplate.image }}
     >
       {children}
     </CartContext.Provider>
