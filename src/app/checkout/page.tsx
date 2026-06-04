@@ -37,6 +37,10 @@ export default function CheckoutPage() {
     buyer.city.trim() &&
     buyer.pincode.trim().length >= 6;
 
+  if (step === "pay") {
+    return <CheckoutPay buyer={buyer} items={items} subtotal={subtotal} onBack={() => setStep("details")} />;
+  }
+
   if (items.length === 0) {
     return (
       <>
@@ -55,10 +59,6 @@ export default function CheckoutPage() {
         <Footer />
       </>
     );
-  }
-
-  if (step === "pay") {
-    return <CheckoutPay buyer={buyer} items={items} subtotal={subtotal} onBack={() => setStep("details")} />;
   }
 
   return (

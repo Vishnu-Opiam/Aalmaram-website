@@ -83,28 +83,94 @@ export default function CheckoutPay({
     }
   }
 
-  if (done) {
+  // animated spinner → tick overlay
+  function CheckoutAnim({ done }: { done: boolean }) {
+    return (
+      <div className="relative" style={{ width: 96, height: 96 }}>
+        <style>{`
+          @keyframes aal-spin { to { transform: rotate(360deg); } }
+          @keyframes aal-draw { to { stroke-dashoffset: 0; } }
+          @keyframes aal-pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+          .aal-spinner { animation: aal-spin 1s linear infinite; transform-origin: 50% 50%; }
+          .aal-ring { stroke-dasharray: 180; stroke-dashoffset: 60; }
+          .aal-tick-circle { stroke-dasharray: 200; stroke-dashoffset: 200; animation: aal-draw .55s ease-out forwards; }
+          .aal-tick-check { stroke-dasharray: 50; stroke-dashoffset: 50; animation: aal-draw .35s .45s ease-out forwards; }
+          .aal-tick-wrap { animation: aal-pop .5s ease-out both; }
+        `}</style>
+        {!done && (
+          <svg className="aal-spinner" viewBox="0 0 64 64" width="96" height="96" aria-hidden>
+            <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(35,47,72,.12)" strokeWidth="4" />
+            <circle
+              className="aal-ring"
+              cx="32"
+              cy="32"
+              r="28"
+              fill="none"
+              stroke="var(--burnt, #e07030)"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
+        {done && (
+          <svg className="aal-tick-wrap" viewBox="0 0 64 64" width="96" height="96" aria-hidden>
+            <circle
+              className="aal-tick-circle"
+              cx="32"
+              cy="32"
+              r="28"
+              fill="none"
+              stroke="var(--burnt, #e07030)"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+            <path
+              className="aal-tick-check"
+              d="M20 33 L29 42 L45 24"
+              fill="none"
+              stroke="var(--burnt, #e07030)"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </div>
+    );
+  }
+
+  if (submitting || done) {
     return (
       <>
         <Header />
-        <main className="max-w-[720px] mx-auto px-6 md:px-14 pt-16 pb-24 text-center">
-          <div className="text-[10.5px] tracking-[.28em] font-body font-light opacity-65">
+        <main className="max-w-[720px] mx-auto px-6 md:px-14 pt-24 pb-24 text-center min-h-[60vh] flex flex-col items-center justify-center">
+          <CheckoutAnim done={done} />
+
+          <div className="mt-10 text-[10.5px] tracking-[.28em] font-body font-light opacity-65">
             ORDER {orderId}
           </div>
           <h1
-            className="mt-3 font-display font-black display-tight text-[40px] md:text-[56px]"
+            className="mt-3 font-display font-black display-tight text-[40px] md:text-[56px] transition-opacity duration-500"
             style={{ color: "var(--night)" }}
           >
-            Thank you.
+            {done ? "Order confirmed" : "Confirming your order…"}
           </h1>
-          <p className="mt-5 font-body font-light text-[16px] leading-loose opacity-85 max-w-[44ch] mx-auto">
-            We have your details and your payment screenshot. Once we verify the
-            transfer (usually within the day) we&rsquo;ll write to{" "}
-            <span className="italic">{buyer.email}</span> with dispatch details.
-          </p>
-          <a href="/" className="inline-block mt-10 btn-night px-8 py-3 text-[11px] tracking-[.28em]">
-            BACK TO THE BOOK
-          </a>
+          {done ? (
+            <p className="mt-5 font-body font-light text-[16px] leading-loose opacity-85 max-w-[44ch] mx-auto">
+              We have your details and your payment screenshot. Once we verify the
+              transfer (usually within the day) we&rsquo;ll write to{" "}
+              <span className="italic">{buyer.email}</span> with dispatch details.
+            </p>
+          ) : (
+            <p className="mt-5 font-body font-light text-[14.5px] leading-loose opacity-70 max-w-[40ch] mx-auto">
+              Sending your details &amp; screenshot. This takes a moment.
+            </p>
+          )}
+          {done && (
+            <a href="/" className="inline-block mt-10 btn-night px-8 py-3 text-[11px] tracking-[.28em]">
+              BACK TO THE BOOK
+            </a>
+          )}
         </main>
         <Footer />
       </>
