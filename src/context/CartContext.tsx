@@ -39,8 +39,8 @@ const DEFAULT_PRODUCT: CartItem = {
   id: "nandu-01",
   title: "Nandu in Muziris",
   subtitle: "First edition · Numbered",
-  price: 1480,
-  compareAt: 1650,
+  price: 700,
+  compareAt: 1400,
   qty: 1,
   image: "/books/Cover.png",
 };
@@ -78,16 +78,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Handle both Admin API (string) and Storefront API (object with amount)
         const getPrice = (p: any) => parseFloat(typeof p === 'string' ? p : p?.amount || "0");
         
-        const shopifyPrice = getPrice(variant.price);
-        const shopifyCompareAt = variant.compareAtPrice ? getPrice(variant.compareAtPrice) : shopifyPrice;
+        const shopifyCompareAt = getPrice(variant.price);
         const shopifyImage = "/books/Cover.png";
-        
+
         setProductTemplate({
           id: variant.id,
           title: prod.title,
           subtitle: "First edition · Numbered",
-          price: shopifyPrice,
-          compareAt: shopifyCompareAt,
+          price: 700,
+          compareAt: shopifyCompareAt || 1400,
           qty: 1,
           image: shopifyImage,
         });
@@ -95,7 +94,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Update items if they were added before the fetch
         setItems(prev => prev.map(it => {
           if (it.id === "nandu-01") {
-            return { ...it, id: variant.id, price: shopifyPrice, compareAt: shopifyCompareAt, title: prod.title, image: shopifyImage };
+            return { ...it, id: variant.id, price: 700, compareAt: shopifyCompareAt || 1400, title: prod.title, image: shopifyImage };
           }
           return it;
         }));
