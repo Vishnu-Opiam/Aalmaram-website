@@ -315,7 +315,43 @@ export async function deleteEvent(id: string): Promise<void> {
   }
 }
 
-export async function createCheckout(variantId: string, quantity: number) {
+export interface CheckoutLineItem {
+  variantId: string;
+  quantity: number;
+}
+
+/**
+ * Creates a Shopify draft order for the given line items and returns its
+ * invoice URL — the hosted Shopify checkout where the customer enters their
+ * address and pays (Razorpay etc. are configured in the Shopify admin).
+ *
+ * Any line item whose variantId isn't a Shopify GID (e.g. a placeholder used
+ * before the product has loaded client-side) is resolved to the store's first
+ * product variant, so checkout still works in that race.
+ */
+export async function createCheckout(lineItems: CheckoutLineItem[]): Promise<string> {
+  const items = (lineItems || []).filter((li) => li && li.quantity > 0);
+  if (items.length === 0) {
+    throw new Error("No items to check out.");
+  }
+
+  let fallbackVariantId: string | null = null;
+  if (items.some((li) => !li.variantId?.startsWith("gid://"))) {
+    const product = await getFirstProduct();
+    fallbackVariantId = product?.variants.edges[0]?.node.id ?? null;
+  }
+
+  const resolved = items
+    .map((li) => ({
+      variantId: li.variantId?.startsWith("gid://") ? li.variantId : fallbackVariantId,
+      quantity: li.quantity,
+    }))
+    .filter((li): li is CheckoutLineItem => Boolean(li.variantId));
+
+  if (resolved.length === 0) {
+    throw new Error("Couldn't resolve a Shopify variant for checkout.");
+  }
+
   const query = `
     mutation draftOrderCreate($input: DraftOrderInput!) {
       draftOrderCreate(input: $input) {
@@ -329,11 +365,27 @@ export async function createCheckout(variantId: string, quantity: number) {
   `;
   const data = await shopifyFetch<{ draftOrderCreate: { draftOrder: { id: string, invoiceUrl: string }, userErrors: { field: string[]; message: string }[] } }>({
     query,
-    variables: { input: { lineItems: [{ variantId, quantity }] } }
+    variables: { input: { lineItems: resolved } }
   });
-  
+
   if (data.draftOrderCreate.userErrors.length > 0) {
     throw new Error(data.draftOrderCreate.userErrors[0].message);
   }
-  return data.draftOrderCreate.draftOrder.invoiceUrl;
+
+  // Shopify builds the invoice URL on the store's *primary* domain. For this
+  // headless setup that primary domain (aalmaram.com) serves the Next.js app,
+  // not Shopify — so the invoice path 404s there. Force the host back to the
+  // myshopify.com domain, which Shopify always serves checkout/invoices on.
+  const invoiceUrl = data.draftOrderCreate.draftOrder.invoiceUrl;
+  const shopDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+  if (shopDomain) {
+    try {
+      const u = new URL(invoiceUrl);
+      u.host = shopDomain;
+      return u.toString();
+    } catch {
+      // Fall through to the raw URL if it isn't parseable for some reason.
+    }
+  }
+  return invoiceUrl;
 }

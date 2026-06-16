@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Claude Code local config
 .claude/
+
+.vercel
+
+# MCP config (contains API tokens)
+.mcp.json

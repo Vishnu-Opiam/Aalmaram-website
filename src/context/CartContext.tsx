@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-import { getFirstProduct } from "@/lib/shopify";
+import { getFirstProduct, createCheckout } from "@/lib/shopify";
 
 const STORAGE_KEY = "aalmaram_cart_v1";
 
@@ -130,13 +130,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  // Create a Shopify draft order for the given line items and send the buyer to
+  // Shopify's hosted checkout, where address + payment (Razorpay) are handled.
+  const startCheckout = useCallback(
+    async (lineItems: { variantId: string; quantity: number }[]) => {
+      const valid = lineItems.filter((li) => li.quantity > 0);
+      if (valid.length === 0) return;
+      setIsCheckingOut(true);
+      try {
+        const url = await createCheckout(valid);
+        window.location.href = url;
+      } catch (err) {
+        console.error("Checkout failed:", err);
+        setIsCheckingOut(false);
+        alert("Sorry — we couldn't reach secure checkout just now. Please try again in a moment.");
+      }
+    },
+    []
+  );
+
   const checkout = useCallback(() => {
-    if (items.length === 0) return;
-    setIsCheckingOut(true);
-    window.location.href = "/checkout";
-  }, [items]);
+    startCheckout(items.map((it) => ({ variantId: it.id, quantity: it.qty })));
+  }, [items, startCheckout]);
 
   const buyNow = useCallback(() => {
+    // Reflect the added copy in the cart, then check out the whole basket.
+    const merged = new Map<string, number>();
+    for (const it of items) merged.set(it.id, (merged.get(it.id) ?? 0) + it.qty);
+    merged.set(productTemplate.id, (merged.get(productTemplate.id) ?? 0) + 1);
+
     setItems((prev) => {
       const existing = prev.find((it) => it.id === productTemplate.id);
       if (existing) {
@@ -144,9 +166,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { ...productTemplate }];
     });
-    setIsCheckingOut(true);
-    window.location.href = "/checkout";
-  }, [productTemplate]);
+
+    startCheckout([...merged.entries()].map(([variantId, quantity]) => ({ variantId, quantity })));
+  }, [items, productTemplate, startCheckout]);
 
   const clearCart = useCallback(() => setItems([]), []);
 

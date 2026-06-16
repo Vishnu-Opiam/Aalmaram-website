@@ -1,5 +1,6 @@
 import { listEvents, type EventRecord } from "@/lib/events";
 import NewsletterForm from "./NewsletterForm";
+import EventRegisterForm from "./EventRegisterForm";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +117,10 @@ export default async function NewsletterEvents() {
                           {inner}
                         </a>
                       ) : (
-                        inner
+                        <>
+                          {inner}
+                          <EventRegisterForm eventId={ev.id} eventTitle={ev.title} />
+                        </>
                       )}
                     </div>
                   );

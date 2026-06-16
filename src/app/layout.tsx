@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { CartProvider } from "@/context/CartContext";
 import { PreOrderProvider } from "@/context/PreOrderContext";
 import "./globals.css";
@@ -21,6 +22,7 @@ export default function RootLayout({
           <PreOrderProvider>{children}</PreOrderProvider>
         </CartProvider>
       </body>
+      {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
     </html>
   );
 }

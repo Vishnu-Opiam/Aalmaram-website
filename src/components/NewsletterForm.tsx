@@ -5,11 +5,33 @@ import { FormEvent, useRef, useState } from "react";
 export default function NewsletterForm() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (inputRef.current) inputRef.current.value = "";
-    setMsg("Thank you for subscribing.");
+    const email = inputRef.current?.value.trim() ?? "";
+    if (!email || busy) return;
+
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(data.error || "Something went wrong — please try again.");
+        return;
+      }
+      if (inputRef.current) inputRef.current.value = "";
+      setMsg("Thank you for subscribing.");
+    } catch {
+      setMsg("Something went wrong — please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -27,10 +49,11 @@ export default function NewsletterForm() {
         </div>
         <button
           type="submit"
-          className="text-[13px] tracking-[.26em] font-body font-bold hover:opacity-70 transition-opacity"
+          disabled={busy}
+          className="text-[13px] tracking-[.26em] font-body font-bold hover:opacity-70 transition-opacity disabled:opacity-40"
           style={{ color: "var(--night)" }}
         >
-          SUBSCRIBE
+          {busy ? "SENDING…" : "SUBSCRIBE"}
         </button>
       </form>
       <span
