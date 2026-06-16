@@ -372,16 +372,19 @@ export async function createCheckout(lineItems: CheckoutLineItem[]): Promise<str
     throw new Error(data.draftOrderCreate.userErrors[0].message);
   }
 
-  // Shopify builds the invoice URL on the store's *primary* domain. For this
-  // headless setup that primary domain (aalmaram.com) serves the Next.js app,
-  // not Shopify — so the invoice path 404s there. Force the host back to the
-  // myshopify.com domain, which Shopify always serves checkout/invoices on.
+  // Shopify builds the invoice URL on the store's *primary* domain. With the
+  // dedicated checkout subdomain (store.aalmaram.com) set as primary and served
+  // by Shopify, that URL is already correct — so we return it unchanged.
+  //
+  // SHOPIFY_CHECKOUT_DOMAIN lets us pin the checkout host explicitly if needed
+  // (e.g. if the primary domain ever changes). Leave it unset to use whatever
+  // host Shopify returns.
   const invoiceUrl = data.draftOrderCreate.draftOrder.invoiceUrl;
-  const shopDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-  if (shopDomain) {
+  const checkoutDomain = process.env.SHOPIFY_CHECKOUT_DOMAIN;
+  if (checkoutDomain) {
     try {
       const u = new URL(invoiceUrl);
-      u.host = shopDomain;
+      u.host = checkoutDomain;
       return u.toString();
     } catch {
       // Fall through to the raw URL if it isn't parseable for some reason.
