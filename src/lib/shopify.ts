@@ -63,6 +63,42 @@ async function shopifyFetch<T>({ query, variables }: { query: string; variables?
   return json.data;
 }
 
+/**
+ * Calls the public Storefront API (a different endpoint + token than the Admin
+ * API above). Used by the cart-based checkout so customers get Shopify's real
+ * hosted checkout — the one that shows the "Discount code or gift card" box.
+ *
+ * Requires a Storefront API access token in SHOPIFY_STOREFRONT_API_TOKEN. Get
+ * it from Shopify admin → Settings → Apps and sales channels → Develop apps →
+ * (your app) → enable Storefront API access → API credentials tab.
+ */
+async function storefrontFetch<T>({ query, variables }: { query: string; variables?: Record<string, unknown> }): Promise<T> {
+  const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+  const token = process.env.SHOPIFY_STOREFRONT_API_TOKEN;
+  if (!token) {
+    throw new Error("SHOPIFY_STOREFRONT_API_TOKEN is not set.");
+  }
+  const endpoint = `https://${domain}/api/2024-01/graphql.json`;
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Storefront-Access-Token": token,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  const json = await res.json();
+  if (json.errors) {
+    console.error("\n\n=== SHOPIFY STOREFRONT ERROR ===");
+    console.error(JSON.stringify(json.errors, null, 2));
+    console.error("================================\n\n");
+    throw new Error("Shopify Storefront Error: " + JSON.stringify(json.errors));
+  }
+  return json.data;
+}
+
 export interface ShopifyProduct {
   id: string;
   title: string;
@@ -321,15 +357,33 @@ export interface CheckoutLineItem {
 }
 
 /**
- * Creates a Shopify draft order for the given line items and returns its
- * invoice URL — the hosted Shopify checkout where the customer enters their
- * address and pays (Razorpay etc. are configured in the Shopify admin).
+ * Shopify builds checkout URLs on the store's *primary* domain. With the
+ * dedicated checkout subdomain (store.aalmaram.com) set as primary and served
+ * by Shopify, that URL is already correct — so we usually return it unchanged.
  *
- * Any line item whose variantId isn't a Shopify GID (e.g. a placeholder used
- * before the product has loaded client-side) is resolved to the store's first
- * product variant, so checkout still works in that race.
+ * SHOPIFY_CHECKOUT_DOMAIN lets us pin the checkout host explicitly if needed
+ * (e.g. if the primary domain ever changes). Leave it unset to use whatever
+ * host Shopify returns.
  */
-export async function createCheckout(lineItems: CheckoutLineItem[]): Promise<string> {
+function pinCheckoutDomain(url: string): string {
+  const checkoutDomain = process.env.SHOPIFY_CHECKOUT_DOMAIN;
+  if (!checkoutDomain) return url;
+  try {
+    const u = new URL(url);
+    u.host = checkoutDomain;
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Resolves cart line items to real Shopify variant GIDs. Any item whose
+ * variantId isn't a GID (e.g. a placeholder used before the product has loaded
+ * client-side) falls back to the store's first product variant, so checkout
+ * still works in that race.
+ */
+async function resolveLineItems(lineItems: CheckoutLineItem[]): Promise<CheckoutLineItem[]> {
   const items = (lineItems || []).filter((li) => li && li.quantity > 0);
   if (items.length === 0) {
     throw new Error("No items to check out.");
@@ -351,7 +405,55 @@ export async function createCheckout(lineItems: CheckoutLineItem[]): Promise<str
   if (resolved.length === 0) {
     throw new Error("Couldn't resolve a Shopify variant for checkout.");
   }
+  return resolved;
+}
 
+/**
+ * Creates a Shopify cart via the Storefront API and returns its checkoutUrl —
+ * the standard hosted checkout that shows the "Discount code or gift card" box,
+ * so customers can apply codes like TKHP themselves.
+ *
+ * Requires SHOPIFY_STOREFRONT_API_TOKEN (see storefrontFetch). The products
+ * must also be published to the sales channel that token belongs to, or
+ * cartCreate returns a "merchandise not found" error.
+ */
+async function createCartCheckout(resolved: CheckoutLineItem[], discountCode?: string): Promise<string> {
+  const query = `
+    mutation cartCreate($input: CartInput!) {
+      cartCreate(input: $input) {
+        cart { id checkoutUrl }
+        userErrors { field message }
+      }
+    }
+  `;
+  const data = await storefrontFetch<{
+    cartCreate: { cart: { id: string; checkoutUrl: string } | null; userErrors: { field: string[]; message: string }[] };
+  }>({
+    query,
+    variables: {
+      input: {
+        lines: resolved.map((li) => ({ merchandiseId: li.variantId, quantity: li.quantity })),
+        ...(discountCode ? { discountCodes: [discountCode] } : {}),
+      },
+    },
+  });
+
+  if (data.cartCreate.userErrors.length > 0) {
+    throw new Error(data.cartCreate.userErrors[0].message);
+  }
+  const checkoutUrl = data.cartCreate.cart?.checkoutUrl;
+  if (!checkoutUrl) {
+    throw new Error("Shopify did not return a checkout URL for the cart.");
+  }
+  return pinCheckoutDomain(checkoutUrl);
+}
+
+/**
+ * Creates a Shopify draft order for the given line items and returns its
+ * invoice URL. Draft order invoices do NOT show a discount code field — kept
+ * only as a fallback for when no Storefront token is configured.
+ */
+async function createDraftOrderCheckout(resolved: CheckoutLineItem[]): Promise<string> {
   const query = `
     mutation draftOrderCreate($input: DraftOrderInput!) {
       draftOrderCreate(input: $input) {
@@ -371,24 +473,20 @@ export async function createCheckout(lineItems: CheckoutLineItem[]): Promise<str
   if (data.draftOrderCreate.userErrors.length > 0) {
     throw new Error(data.draftOrderCreate.userErrors[0].message);
   }
+  return pinCheckoutDomain(data.draftOrderCreate.draftOrder.invoiceUrl);
+}
 
-  // Shopify builds the invoice URL on the store's *primary* domain. With the
-  // dedicated checkout subdomain (store.aalmaram.com) set as primary and served
-  // by Shopify, that URL is already correct — so we return it unchanged.
-  //
-  // SHOPIFY_CHECKOUT_DOMAIN lets us pin the checkout host explicitly if needed
-  // (e.g. if the primary domain ever changes). Leave it unset to use whatever
-  // host Shopify returns.
-  const invoiceUrl = data.draftOrderCreate.draftOrder.invoiceUrl;
-  const checkoutDomain = process.env.SHOPIFY_CHECKOUT_DOMAIN;
-  if (checkoutDomain) {
-    try {
-      const u = new URL(invoiceUrl);
-      u.host = checkoutDomain;
-      return u.toString();
-    } catch {
-      // Fall through to the raw URL if it isn't parseable for some reason.
-    }
+/**
+ * Sends the buyer to Shopify's hosted checkout. Uses the Storefront cart flow
+ * (which exposes the discount code box) when SHOPIFY_STOREFRONT_API_TOKEN is
+ * set, and falls back to the legacy draft-order flow otherwise so checkout
+ * keeps working until the token is configured.
+ */
+export async function createCheckout(lineItems: CheckoutLineItem[], discountCode?: string): Promise<string> {
+  const resolved = await resolveLineItems(lineItems);
+
+  if (process.env.SHOPIFY_STOREFRONT_API_TOKEN) {
+    return createCartCheckout(resolved, discountCode);
   }
-  return invoiceUrl;
+  return createDraftOrderCheckout(resolved);
 }

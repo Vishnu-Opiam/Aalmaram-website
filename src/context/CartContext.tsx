@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { getFirstProduct, createCheckout } from "@/lib/shopify";
 
 const STORAGE_KEY = "aalmaram_cart_v1";
+const DISCOUNT_STORAGE_KEY = "aalmaram_discount_v1";
 
 export interface CartItem {
   id: string;
@@ -64,12 +65,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
+  // A marketing link like aalmaram.com/?discount=NAGMA15 stashes the code here so
+  // it survives browsing and gets applied automatically whenever checkout starts.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("discount");
+      if (code) {
+        localStorage.setItem(DISCOUNT_STORAGE_KEY, code);
+        params.delete("discount");
+        const rest = params.toString();
+        window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {}
   }, [items, hydrated]);
+
+  // When the buyer navigates to Shopify checkout we set isCheckingOut=true and
+  // never reset it (the page unloads). If they hit "back", the browser may
+  // restore this page from the bfcache with its JS state frozen, leaving the
+  // button stuck on "Placing order…". Reset on pageshow so it recovers without
+  // a manual refresh.
+  useEffect(() => {
+    const reset = () => setIsCheckingOut(false);
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
 
   useEffect(() => {
     getFirstProduct().then((prod) => {
@@ -138,12 +165,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (valid.length === 0) return;
       setIsCheckingOut(true);
       try {
-        const url = await createCheckout(valid);
+        const discountCode = localStorage.getItem(DISCOUNT_STORAGE_KEY) || undefined;
+        const url = await createCheckout(valid, discountCode);
         window.location.href = url;
       } catch (err) {
         console.error("Checkout failed:", err);
         setIsCheckingOut(false);
-        alert("Sorry — we couldn't reach secure checkout just now. Please try again in a moment.");
+        alert("Sorry, we couldn't reach secure checkout just now. Please try again in a moment.");
       }
     },
     []
