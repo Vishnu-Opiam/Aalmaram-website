@@ -16,7 +16,7 @@ export default function Updates() {
             <article className="border-t border-black/10 pt-8">
               <div className="spread aspect-[7/5] mb-7">
                 <div className="inner">
-                  <img src="/books/gallery-1.jpg" alt="The Nandu in Muziris Launch in Kochi" className="w-full h-full object-cover" />
+                  <img src="/books/nandu-launch.jpg" alt="The Nandu in Muziris Launch in Kochi" className="w-full h-full object-cover" />
                 </div>
               </div>
 
