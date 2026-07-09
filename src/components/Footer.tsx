@@ -17,12 +17,12 @@ export default function Footer() {
           </div>
 
           <div className="col-span-6 md:col-span-3">
-            <div className="text-[10.5px] tracking-[.28em] font-body font-light opacity-65">PRESS</div>
+            <div className="text-[10.5px] tracking-[.28em] font-body font-light opacity-65">EXPLORE</div>
             <ul className="mt-5 space-y-3 font-body font-light text-[14.5px]">
-              <li><a href="#" className="qlink">About us</a></li>
-              <li><a href="#" className="qlink">The studio</a></li>
-              <li><a href="#" className="qlink">Stockists</a></li>
-              <li><a href="#" className="qlink">Journal</a></li>
+              <li><a href="#products" className="qlink">Our work</a></li>
+              <li><a href="#about" className="qlink">What Aalmaram is</a></li>
+              <li><a href="#news" className="qlink">Journal &amp; events</a></li>
+              <li><a href="#collaborate" className="qlink">Collaborate with us</a></li>
             </ul>
           </div>
 

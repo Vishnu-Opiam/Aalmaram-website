@@ -258,6 +258,50 @@ body { font-family: var(--font-body); font-weight: 300; -webkit-font-smoothing: 
 }
 .btn-night:hover::after { left: 120%; }
 
+/* Product card — scaled 3D book so it fits a column */
+.product-book { display: grid; place-items: center; }
+.product-book .book { width: min(300px, 66vw); }
+
+/* Product cards */
+.product-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 2.5rem 2rem;
+  border: 1px solid rgba(35,47,72,.14);
+  border-radius: 3px;
+  background: rgba(255,255,255,.14);
+  transition: border-color .4s ease, transform .4s ease, box-shadow .4s ease;
+}
+.product-card.is-live:hover {
+  border-color: rgba(224,112,48,.45);
+  transform: translateY(-3px);
+  box-shadow: 0 40px 70px -50px rgba(35,47,72,.5);
+}
+.product-card.is-soon {
+  border-style: dashed;
+  border-color: rgba(35,47,72,.2);
+  background: transparent;
+}
+.product-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: 10.5px;
+  letter-spacing: .28em;
+}
+
+/* Fact panels — What Aalmaram is */
+.fact-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  padding: 3rem 2.2rem;
+}
+@media (min-width: 768px) {
+  .fact-panel { padding: 4.5rem 4rem; }
+}
+
 /* Gallery spread cards */
 .spread { position: relative; overflow: hidden; }
 .spread .inner { position:absolute; inset:0; }

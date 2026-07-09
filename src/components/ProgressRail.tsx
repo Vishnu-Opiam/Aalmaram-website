@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 
 const sections = [
   { id: "hero", href: "#hero" },
-  { id: "story", href: "#story" },
-  { id: "gallery", href: "#gallery" },
-  { id: "voices", href: "#voices" },
-  { id: "craft", href: "#craft" },
-  { id: "cta", href: "#cta" },
+  { id: "products", href: "#products" },
+  { id: "about", href: "#about" },
+  { id: "news", href: "#news" },
+  { id: "collaborate", href: "#collaborate" },
 ];
 
 export default function ProgressRail() {

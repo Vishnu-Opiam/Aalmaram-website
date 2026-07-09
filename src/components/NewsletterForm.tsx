@@ -22,13 +22,13 @@ export default function NewsletterForm() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setMsg(data.error || "Something went wrong — please try again.");
+        setMsg(data.error || "Something went wrong. Please try again.");
         return;
       }
       if (inputRef.current) inputRef.current.value = "";
       setMsg("Thank you for subscribing.");
     } catch {
-      setMsg("Something went wrong — please try again.");
+      setMsg("Something went wrong. Please try again.");
     } finally {
       setBusy(false);
     }

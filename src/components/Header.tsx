@@ -9,10 +9,11 @@ export default function Header() {
     <header className="relative z-20">
       <div className="max-w-[1480px] mx-auto px-6 md:px-14">
         <div className="grid grid-cols-3 items-center py-7">
-          <nav className="flex items-center gap-8 text-[12px] tracking-[.2em] font-body font-light">
-            <a href="#story" className="qlink">The story</a>
-            <a href="#craft" className="qlink hidden md:inline">The craft</a>
-            <a href="#voices" className="qlink hidden md:inline">Voices</a>
+          <nav className="flex items-center gap-6 lg:gap-8 text-[12px] tracking-[.2em] font-body font-light">
+            <a href="#products" className="qlink whitespace-nowrap">Our work</a>
+            <a href="#about" className="qlink hidden lg:inline">About</a>
+            <a href="#news" className="qlink hidden lg:inline">Journal</a>
+            <a href="#collaborate" className="qlink hidden lg:inline whitespace-nowrap">Collaborate</a>
           </nav>
 
           <a

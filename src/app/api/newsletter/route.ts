@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     if (!res.ok) throw new Error(`Webhook responded ${res.status}`);
   } catch (err) {
     console.error("Newsletter webhook failed:", err);
-    return NextResponse.json({ error: "Something went wrong — please try again" }, { status: 502 });
+    return NextResponse.json({ error: "Something went wrong. Please try again" }, { status: 502 });
   }
 
   return NextResponse.json({ ok: true });

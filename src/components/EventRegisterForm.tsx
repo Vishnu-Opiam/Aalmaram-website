@@ -29,13 +29,13 @@ export default function EventRegisterForm({ eventId, eventTitle }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setMsg(data.error || "Something went wrong — please try again.");
+        setMsg(data.error || "Something went wrong. Please try again.");
         return;
       }
       setDone(true);
-      setMsg("You're registered — check your inbox for confirmation.");
+      setMsg("You're registered. Check your inbox for confirmation.");
     } catch {
-      setMsg("Something went wrong — please try again.");
+      setMsg("Something went wrong. Please try again.");
     } finally {
       setBusy(false);
     }
