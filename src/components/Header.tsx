@@ -29,6 +29,19 @@ export default function Header() {
           </a>
 
           <div className="flex items-center justify-end gap-7 text-[12px] tracking-[.2em] font-body font-light">
+            <a
+              href="https://www.instagram.com/aalmarampublishing/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Aalmaram on Instagram"
+              className="qlink flex items-center"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </a>
             <button onClick={openCart} className="flex items-center gap-2 qlink">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.5L21 8H6" />

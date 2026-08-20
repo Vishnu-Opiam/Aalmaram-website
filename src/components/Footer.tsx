@@ -44,7 +44,9 @@ export default function Footer() {
         >
           <span>© 2026 Aalmaram Books · Fort Kochi, Kerala</span>
           <span>Set in Boska &amp; Anderson Grotesk · Printed on archival paper</span>
-          <span><a href="/privacy" className="qlink">Privacy</a> · <a href="/terms" className="qlink">Terms</a> · <a href="/refund" className="qlink">Refunds</a> · <a href="/shipping" className="qlink">Shipping</a> · <a href="/contact" className="qlink">Contact</a></span>
+          <span>
+            <a href="/privacy" className="qlink">Privacy</a> · <a href="/terms" className="qlink">Terms</a> · <a href="/refund" className="qlink">Refunds</a> · <a href="/shipping" className="qlink">Shipping</a> · <a href="/contact" className="qlink">Contact</a> · <a href="https://www.instagram.com/aalmarampublishing/" target="_blank" rel="noopener noreferrer" className="qlink">Instagram</a>
+          </span>
         </div>
       </div>
     </footer>
