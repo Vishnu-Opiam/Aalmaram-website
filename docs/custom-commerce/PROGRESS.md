@@ -115,8 +115,10 @@ Before P1 can be verified against a real database:
    `product-images` storage bucket, email auth with signups **off**, and an auth
    user per admin.
 2. Fill `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PROJECT_REF` and `ADMIN_ALLOWLIST` in
-   `.env.local` (template in `.env.local.example`).
+   `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_PROJECT_REF` in `.env.local` — the
+   keys are already there waiting for values, as is `ADMIN_ALLOWLIST`
+   (`vishnu@opiamanalytics.com`, `nivedith@aalmaram.com`). Both need a Supabase
+   Auth user created by hand, since signups are off.
 3. `npx supabase login`, then:
 
    ```bash
