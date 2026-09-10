@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAuthed } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/admin-auth";
 import { listEvents, createEvent, type EventInput } from "@/lib/events";
 
 function sanitize(body: unknown): EventInput {
@@ -15,7 +15,7 @@ function sanitize(body: unknown): EventInput {
 }
 
 export async function GET() {
-  if (!(await isAuthed())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
@@ -29,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await isAuthed())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {

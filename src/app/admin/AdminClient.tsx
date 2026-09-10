@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+
+import { signOut } from "./actions";
 
 interface EventRecord {
   id: string;
@@ -19,87 +21,16 @@ const EMPTY: Omit<EventRecord, "id"> = {
   link: "",
 };
 
-export default function AdminClient({ initialAuthed }: { initialAuthed: boolean }) {
-  const [authed, setAuthed] = useState(initialAuthed);
-
-  if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
-  return <Panel onLogout={() => setAuthed(false)} />;
-}
-
-/* ───────────────────────── Login ───────────────────────── */
-
-function Login({ onSuccess }: { onSuccess: () => void }) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    try {
-      const res = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
-      onSuccess();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <form onSubmit={submit} className="w-full max-w-[360px]">
-        <div className="text-[10.5px] tracking-[.34em] font-body font-light opacity-60">AALMARAM</div>
-        <h1 className="mt-4 font-display font-black text-[30px] display-tight" style={{ color: "var(--night)" }}>
-          Admin
-        </h1>
-        <p className="mt-3 font-body font-light text-[14px]" style={{ color: "#2a3855" }}>
-          Enter the admin password to manage events.
-        </p>
-
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          autoFocus
-          className="preorder-input font-body text-[15px] mt-8 w-full"
-        />
-
-        {error && (
-          <p className="mt-3 text-[12.5px] font-body" style={{ color: "var(--spice)" }}>
-            {error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={busy}
-          className="btn-night w-full py-4 text-[12px] tracking-[.28em] font-body font-normal mt-6"
-        >
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </main>
-  );
-}
-
 /* ───────────────────────── Panel ───────────────────────── */
 
-function Panel({ onLogout }: { onLogout: () => void }) {
+export default function AdminClient() {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<EventRecord | null>(null);
   const [form, setForm] = useState<Omit<EventRecord, "id">>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [, startTransition] = useTransition();
 
   const load = useCallback(async () => {
     try {
@@ -172,9 +103,10 @@ function Panel({ onLogout }: { onLogout: () => void }) {
     }
   };
 
-  const logout = async () => {
-    await fetch("/api/admin/login", { method: "DELETE" });
-    onLogout();
+  const logout = () => {
+    startTransition(() => {
+      void signOut();
+    });
   };
 
   const field = (k: keyof typeof form) => ({

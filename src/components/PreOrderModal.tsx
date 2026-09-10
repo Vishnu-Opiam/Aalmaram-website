@@ -16,10 +16,13 @@ export default function PreOrderModal() {
   /* Reset state when modal opens */
   useEffect(() => {
     if (isModalOpen) {
+      // Resetting on open is the point of this effect, not a cascade.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setStage("form");
       setName("");
       setEmail("");
       setError("");
+      /* eslint-enable react-hooks/set-state-in-effect */
       setTimeout(() => nameRef.current?.focus(), 120);
     }
   }, [isModalOpen]);
@@ -103,12 +106,12 @@ export default function PreOrderModal() {
             </div>
 
             <h3 className="mt-8 font-display font-black text-[28px] md:text-[34px] display-tight" style={{ color: "var(--night)" }}>
-              We've saved a<br />copy for you.
+              We&rsquo;ve saved a<br />copy for you.
             </h3>
 
             <p className="mt-5 font-body font-light text-[15px] leading-relaxed max-w-[34ch] mx-auto" style={{ color: "#2a3855" }}>
               Thank you for your interest in <em className="font-display italic">Nandu in Muziris</em>.
-              We'll let you know the moment it's ready to ship.
+              We&rsquo;ll let you know the moment it&rsquo;s ready to ship.
             </p>
 
             <div className="mt-6 text-[10.5px] tracking-[.3em] font-body font-light opacity-50">
@@ -134,7 +137,7 @@ export default function PreOrderModal() {
             </h3>
 
             <p className="mt-5 font-body font-light text-[15px] leading-relaxed max-w-[36ch] mx-auto" style={{ color: "#2a3855" }}>
-              Enter your details below and we'll save a first-edition copy of <em className="font-display italic">Nandu in Muziris</em> for you.
+              Enter your details below and we&rsquo;ll save a first-edition copy of <em className="font-display italic">Nandu in Muziris</em> for you.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-9 space-y-4 w-full max-w-[340px] mx-auto">
@@ -185,7 +188,7 @@ export default function PreOrderModal() {
             </form>
 
             <div className="mt-6 text-[10.5px] tracking-[.22em] font-body font-light opacity-40">
-              No payment required · We'll contact you when it's ready
+              No payment required &middot; We&rsquo;ll contact you when it&rsquo;s ready
             </div>
           </div>
         )}

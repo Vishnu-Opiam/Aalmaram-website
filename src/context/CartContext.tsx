@@ -60,6 +60,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      // localStorage is not readable during SSR, so hydrating here is the
+      // only option; the cascade is one render on mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setItems(JSON.parse(raw));
     } catch {}
     setHydrated(true);
@@ -103,7 +106,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (prod && prod.variants.edges[0]) {
         const variant = prod.variants.edges[0].node;
         // Handle both Admin API (string) and Storefront API (object with amount)
-        const getPrice = (p: any) => parseFloat(typeof p === 'string' ? p : p?.amount || "0");
+        const getPrice = (p: unknown) =>
+          parseFloat(
+            typeof p === "string" ? p : ((p as { amount?: string } | null)?.amount ?? "0")
+          );
         
         const shopifyCompareAt = getPrice(variant.price);
         const shopifyImage = "/books/Cover.png";
