@@ -9,7 +9,7 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
 
 - [x] **P1 Foundation** — schema, RLS, clients, admin auth, seed script
 - [x] **P2 Products + storefront read** — admin CRUD, Supabase Storage, /shop + PDP
-- [ ] P3 Checkout + payments
+- [x] **P3 Checkout + payments** — pricing, Razorpay, atomic order creation
 - [ ] P4 Orders admin + discounts
 - [ ] P5 Shipping
 - [ ] P6 Events feed + n8n
@@ -125,6 +125,68 @@ render. Types moved to `commerce-types.ts`.
 
 ---
 
+## P3 — what landed
+
+**The order RPC is real.** `create_order_from_checkout` now does the whole thing
+in one transaction: order, items, guarded inventory decrement, discount counters
+and redemption, customer totals, the checkout marked complete, and the
+`order.paid` outbox row. It never recomputes money — the amounts on the checkout
+row are what was quoted and what Razorpay actually charged, and recomputing could
+disagree with a captured payment if a price moved mid-flow.
+
+**Server-side pricing** in `src/lib/pricing.ts`. The browser sends variant ids,
+quantities and maybe a code; unit prices, discount validity and worth, and
+shipping all come from the database. Duplicate lines are collapsed before the
+per-line quantity cap is applied, so the cap cannot be walked around by
+repeating a line.
+
+**Razorpay** over `fetch` + `node:crypto` (`src/lib/razorpay.ts`): order
+creation, payment fetch, refunds, and both HMACs — the checkout signature over
+`order_id|payment_id` with the key secret, and the webhook signature over the
+raw request body with the webhook secret. Both compare in constant time.
+
+**Routes**
+
+| Route | Does |
+|---|---|
+| `POST /api/checkout/quote` | read-only price, so the page can show shipping and a discount before paying |
+| `POST /api/checkout` | prices the basket, writes the `checkouts` row, creates the Razorpay order; rate limited |
+| `POST /api/checkout/confirm` | verifies the signature, checks the ids belong to *this* checkout, creates the order, sets an httpOnly order cookie |
+| `POST /api/webhooks/razorpay` | raw-body signature check, then the same RPC — authoritative, and creates the order even if the browser never came back |
+
+**Pages** `/checkout` (contact, address, live server-priced summary, discount
+box, Razorpay modal) and `/order/confirmed`, which finds the order from an
+httpOnly cookie rather than the URL — order numbers run in sequence, so anything
+keyed on one alone would let a stranger read someone else's order by counting.
+
+**Email** via Resend and React Email (`src/emails/OrderConfirmation.tsx`), using
+the same brand tokens as the hand-written templates in `/emails`. Only the caller
+that actually created the order sends it, so the webhook does not send a second
+receipt. A send failure is logged, never thrown — a customer who has paid has an
+order whether or not the receipt lands.
+
+**Verified.** Two suites now live in `scripts/verify/`.
+
+`rpc-test.mjs` — 25 checks against the live database, including: an oversell
+raises and rolls back completely (stock untouched, checkout still active, no
+orphaned rows); replaying a checkout returns the same order without moving
+stock; the same `razorpay_order_id` on a *different* checkout still returns the
+first order.
+
+`p3-test.mjs` — 33 checks through the running app: pricing and the free-shipping
+threshold; a draft product cannot be bought even with its variant id; ten
+discount rules (percentage, fixed capped at basket value, free shipping, minimum
+subtotal, expiry, deactivation, usage limit, product scope, tag scope, unknown
+code); a forged signature is rejected and creates nothing; a *valid* signature
+cannot be replayed onto a different basket; the callback and webhook are
+idempotent with each other; and the webhook alone creates the order when the
+browser never returns.
+
+Also confirmed in the browser: a `?discount=NAGMA15` link followed by add-to-basket
+gives ₹700 − ₹105 + ₹60 = ₹655 on `/checkout`, priced entirely server-side.
+
+---
+
 ## Decisions
 
 1. **No Cache Components.** `use cache` needs `cacheComponents: true`, which
@@ -158,25 +220,31 @@ render. Types moved to `commerce-types.ts`.
 
 ## Open items
 
-1. **The whole admin UI is unverified.** Sign-in needs a password, which is the
+1. **No real Razorpay payment has been taken.** Every path around it is
+   verified with test secrets, but Razorpay's own API and the checkout modal
+   have never run. Needs test keys (below) and one live test-mode order.
+2. **No email has been sent.** `RESEND_API_KEY` is unset, so
+   `sendOrderConfirmation` reports "skipped" and logs it.
+3. **The whole admin UI is unverified.** Sign-in needs a password, which is the
    owner's to type. `/admin` correctly redirects (307) when signed out, and the
    server actions behind the screens are typed and build clean, but no admin
    screen has been rendered with a real session — including everything P2 added.
    This is the first thing to check on the next sign-in.
-2. **`nivedith@aalmaram.com` has no Supabase Auth user.** Allowlisted, but
+4. **`nivedith@aalmaram.com` has no Supabase Auth user.** Allowlisted, but
    cannot sign in until the account is created in the dashboard.
-3. **Order numbering starts at `AAL1002`.** The verification probe consumed
+5. **Order numbering starts at `AAL1002`.** The verification probe consumed
    `AAL1001`. Cosmetic; the sequence can be reset on request.
-4. **Roll the `service_role` key.** It passed through a chat transcript during
+6. **Roll the `service_role` key.** It passed through a chat transcript during
    setup. Never committed, but worth rotating before go-live.
-5. **Shipping rates in `settings` are placeholders** (₹60 flat, free above ₹999).
+7. **Shipping rates in `settings` are placeholders** (₹60 flat, free above ₹999).
    Confirm the real numbers before P3.
-6. **The Shopify Admin API credential is dead.** Every page load logs
+8. **The Shopify Admin API credential is dead.** Every page load logs
    `Oauth error app_not_installed` from `getFirstProduct()`. The storefront
    degrades gracefully to its hard-coded fallback, so nothing is visibly broken,
    but Shopify is no longer answering. P2 removes this call path.
-7. PLAN §13 answers still wanted before P3: prepaid-only confirmed, markdown
-   descriptions, no customer-facing tracking page.
+9. **PLAN §13 answers still wanted:** prepaid-only confirmed, markdown
+   descriptions, no customer-facing tracking page. All three have been built the
+   recommended way; say so if any should change.
 
 ---
 
@@ -201,4 +269,17 @@ Before P1 can be verified against a real database:
    npm run db:seed
    ```
 
-Razorpay (test keys) is needed for P3, Resend for P3, Shiprocket for P5.
+### Before a real payment can be taken (phase 3)
+
+1. **Razorpay test keys** — Dashboard → Settings → API Keys → Generate Test Key.
+   Put `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in `.env.local`.
+2. **Razorpay webhook** — Dashboard → Settings → Webhooks → Add. URL
+   `https://<your-preview-or-domain>/api/webhooks/razorpay`, events
+   `payment.captured` and `order.paid`, and a secret of your choosing which also
+   goes in `.env.local` as `RAZORPAY_WEBHOOK_SECRET`. For local testing this
+   needs a tunnel, or it can wait for the first Vercel preview deploy.
+3. **Resend** — `RESEND_API_KEY`, and confirm `aalmaram.com` is a verified
+   sending domain. Without it the order still succeeds; only the receipt is
+   skipped, with a line in the logs.
+
+Shiprocket is needed for phase 5.
