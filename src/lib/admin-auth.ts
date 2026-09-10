@@ -4,13 +4,13 @@ import { redirect } from "next/navigation";
 import { adminAllowlist } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { AdminUserRow } from "@/lib/database.types";
+import type { Tables } from "@/lib/database.types";
 
 export interface AdminSession {
   userId: string;
   adminUserId: string | null;
   email: string;
-  role: AdminUserRow["role"];
+  role: Tables<"admin_users">["role"];
   name: string;
 }
 

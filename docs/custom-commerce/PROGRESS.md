@@ -33,6 +33,7 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
 | `…090600_rls` | grants revoked from anon/authenticated, RLS on all 17 tables, 5 public-read policies |
 | `…090700_order_rpc` | `create_order_from_checkout()` signature, body stubbed to raise |
 | `…090800_seed_settings` | the `settings` singleton rows |
+| `…091000_service_role_grants` | privileges for `service_role` (see below) |
 
 **App**
 
@@ -50,9 +51,28 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
   cover, plus `NAGMA15` and `TKHP`.
 
 **Gates:** `npm run lint` 0 errors (13 pre-existing `<img>` warnings),
-`npx tsc --noEmit` clean, `npm run build` green. Verified in the browser:
-`/admin` redirects to `/admin/login`, the form runs its Server Action and
-surfaces a failed sign-in, storefront unchanged.
+`npx tsc --noEmit` clean, `npm run build` green.
+
+**Applied to the live project** (`xxjzoznruxknqnctgncw`, ap-south-1) and verified
+with 17 checks against it: anon reads the active product and nothing else
+(`42501` on orders, customers, discounts, checkouts, outbox, admin_users,
+audit_log); a draft product and its variants stay invisible; anon cannot write;
+`service_role` inserts an order and gets `AAL1001`; negative prices and
+percentages over 100 are rejected (`23514`); the order RPC raises
+not-implemented; the rate limiter allows 3 then blocks.
+
+**Two bugs the push found**, both invisible until the SQL actually ran:
+
+1. `service_role` had no privileges on any table. Supabase's default-privilege
+   grants are attached to the `postgres` role, and `supabase db push` connects
+   as its own migration login role, so nothing fired for it — the seed died on
+   `permission denied for table products`.
+2. `service_role` had no `usage` on the `private` schema, so the default on
+   `orders.order_number` (`private.next_order_number()`) would have failed on the
+   first real order in phase 3. `BYPASSRLS` bypasses row policies, not `GRANT`s.
+
+Both fixed in `20260910091000_service_role_grants.sql`, which also sets default
+privileges so later migrations inherit them.
 
 ---
 
@@ -89,20 +109,22 @@ surfaces a failed sign-in, storefront unchanged.
 
 ## Open items
 
-1. **The migrations have never been executed.** No Supabase project yet, and no
-   Docker on this machine for `supabase start`. Every file parses cleanly
-   against the real Postgres 17 grammar, but PL/pgSQL function bodies are opaque
-   to that parser and nothing has been checked for semantic errors. First
-   `npm run db:push` is the real test.
-2. **`src/lib/database.types.ts` is hand-written.** Replace it with
-   `npm run db:types` output as soon as the project is linked.
-3. **Shipping rates in `settings` are placeholders** (₹60 flat, free above ₹999).
+1. **A signed-in `/admin` render is still unverified.** Everything up to the
+   password prompt is confirmed; the dashboard behind it has not been seen with a
+   real session. Needs the owner to sign in once.
+2. **`nivedith@aalmaram.com` has no Supabase Auth user.** Allowlisted, but
+   cannot sign in until the account is created in the dashboard.
+3. **Order numbering starts at `AAL1002`.** The verification probe consumed
+   `AAL1001`. Cosmetic; the sequence can be reset on request.
+4. **Roll the `service_role` key.** It passed through a chat transcript during
+   setup. Never committed, but worth rotating before go-live.
+5. **Shipping rates in `settings` are placeholders** (₹60 flat, free above ₹999).
    Confirm the real numbers before P3.
-4. **The Shopify Admin API credential is dead.** Every page load logs
+6. **The Shopify Admin API credential is dead.** Every page load logs
    `Oauth error app_not_installed` from `getFirstProduct()`. The storefront
    degrades gracefully to its hard-coded fallback, so nothing is visibly broken,
    but Shopify is no longer answering. P2 removes this call path.
-5. PLAN §13 answers still wanted before P3: prepaid-only confirmed, markdown
+7. PLAN §13 answers still wanted before P3: prepaid-only confirmed, markdown
    descriptions, no customer-facing tracking page.
 
 ---

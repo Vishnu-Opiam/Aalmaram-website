@@ -1,447 +1,1015 @@
-/**
- * Database types for the Supabase schema in `supabase/migrations`.
- *
- * HAND-WRITTEN STAND-IN. Regenerate against the real project with:
- *
- *     npm run db:types
- *
- * That overwrites this file with the canonical output of
- * `supabase gen types typescript`. Until the Supabase project exists, this
- * mirrors the migrations by hand so the app type-checks.
- */
-
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
-
-/** Columns the database fills in for you are optional on insert. */
-type Insertable<Row, Defaulted extends keyof Row> = Omit<Row, Defaulted> &
-  Partial<Pick<Row, Defaulted>>;
-
-type Timestamps = "id" | "created_at" | "updated_at";
-
-export type ProductRow = {
-  id: string;
-  handle: string;
-  title: string;
-  subtitle: string;
-  description_md: string;
-  status: "draft" | "active" | "archived";
-  tags: string[];
-  hsn_code: string;
-  requires_shipping: boolean;
-  seo_title: string | null;
-  seo_description: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type ProductVariantRow = {
-  id: string;
-  product_id: string;
-  title: string;
-  sku: string | null;
-  price_paise: number;
-  compare_at_paise: number | null;
-  inventory_quantity: number;
-  weight_grams: number;
-  length_cm: number;
-  breadth_cm: number;
-  height_cm: number;
-  position: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export type ProductImageRow = {
-  id: string;
-  product_id: string;
-  url: string;
-  alt: string;
-  position: number;
-  created_at: string;
-};
-
-export type CustomerRow = {
-  id: string;
-  email: string;
-  phone: string | null;
-  first_name: string;
-  last_name: string;
-  accepts_marketing: boolean;
-  notes: string;
-  total_orders: number;
-  total_spent_paise: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export type DiscountRow = {
-  id: string;
-  code: string;
-  title: string;
-  type: "percentage" | "fixed_amount" | "free_shipping";
-  value: number;
-  applies_to: "all" | "products" | "tag";
-  product_ids: string[] | null;
-  tag: string | null;
-  min_subtotal_paise: number | null;
-  usage_limit: number | null;
-  usage_limit_per_customer: number | null;
-  once_per_customer: boolean;
-  combinable: boolean;
-  used_count: number;
-  starts_at: string;
-  ends_at: string | null;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export type DiscountRedemptionRow = {
-  id: string;
-  discount_id: string;
-  order_id: string;
-  customer_email: string;
-  amount_paise: number;
-  created_at: string;
-};
-
-export type CheckoutRow = {
-  id: string;
-  email: string | null;
-  line_items: Json;
-  discount_code: string | null;
-  subtotal_paise: number;
-  discount_paise: number;
-  shipping_paise: number;
-  tax_paise: number;
-  total_paise: number;
-  shipping_address: Json | null;
-  razorpay_order_id: string | null;
-  status: "active" | "completed" | "abandoned";
-  completed_order_id: string | null;
-  recovery_email_sent_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type OrderRow = {
-  id: string;
-  order_number: string;
-  email: string;
-  phone: string | null;
-  customer_id: string | null;
-  payment_status: "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
-  fulfillment_status: "unfulfilled" | "fulfilled" | "cancelled" | "returned";
-  order_status: "open" | "archived" | "cancelled";
-  currency: "INR";
-  subtotal_paise: number;
-  discount_paise: number;
-  shipping_paise: number;
-  tax_paise: number;
-  total_paise: number;
-  refunded_paise: number;
-  discount_code: string | null;
-  shipping_address: Json;
-  billing_address: Json | null;
-  razorpay_order_id: string | null;
-  razorpay_payment_id: string | null;
-  razorpay_signature: string | null;
-  notes: string;
-  cancel_reason: string | null;
-  placed_at: string | null;
-  source: "web" | "shopify-import";
-  created_at: string;
-  updated_at: string;
-};
-
-export type OrderItemRow = {
-  id: string;
-  order_id: string;
-  product_id: string | null;
-  variant_id: string | null;
-  title: string;
-  variant_title: string;
-  sku: string | null;
-  unit_price_paise: number;
-  quantity: number;
-  total_paise: number;
-  weight_grams: number;
-  created_at: string;
-};
-
-export type InventoryAdjustmentRow = {
-  id: string;
-  variant_id: string;
-  delta: number;
-  reason: "order" | "restock" | "manual" | "cancellation" | "refund" | "import";
-  order_id: string | null;
-  note: string;
-  created_by: string;
-  created_at: string;
-};
-
-export type ShipmentRow = {
-  id: string;
-  order_id: string;
-  provider: "shiprocket";
-  shiprocket_order_id: string | null;
-  shiprocket_shipment_id: string | null;
-  awb_code: string | null;
-  courier_name: string | null;
-  label_url: string | null;
-  manifest_url: string | null;
-  status:
-    | "pending"
-    | "awb_assigned"
-    | "pickup_scheduled"
-    | "in_transit"
-    | "delivered"
-    | "rto"
-    | "cancelled";
-  tracking_url: string | null;
-  shipped_at: string | null;
-  delivered_at: string | null;
-  raw: Json;
-  created_at: string;
-  updated_at: string;
-};
-
-export type WebhookTopic =
-  | "order.paid"
-  | "order.shipped"
-  | "order.delivered"
-  | "order.refunded"
-  | "order.cancelled";
-
-export type WebhookOutboxRow = {
-  id: string;
-  topic: WebhookTopic;
-  payload: Json;
-  status: "pending" | "sent" | "failed";
-  attempts: number;
-  next_attempt_at: string;
-  last_error: string | null;
-  created_at: string;
-  sent_at: string | null;
-};
-
-export type EventRow = {
-  id: string;
-  title: string;
-  date: string;
-  location: string;
-  description: string;
-  link: string;
-  published: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export type SettingRow = {
-  key: string;
-  value: Json;
-  is_public: boolean;
-  updated_at: string;
-};
-
-export type AdminUserRow = {
-  id: string;
-  user_id: string | null;
-  email: string;
-  role: "owner" | "staff";
-  name: string;
-  last_login_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type AuditLogRow = {
-  id: string;
-  admin_user_id: string | null;
-  admin_email: string;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  diff: Json;
-  created_at: string;
-};
-
-export type RateLimitRow = {
-  key: string;
-  window_start: string;
-  count: number;
-};
-
-type Table<Row, Defaulted extends keyof Row> = {
-  Row: Row;
-  Insert: Insertable<Row, Defaulted>;
-  Update: Partial<Row>;
-  Relationships: [];
-};
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      products: Table<
-        ProductRow,
-        | Timestamps
-        | "subtitle"
-        | "description_md"
-        | "status"
-        | "tags"
-        | "hsn_code"
-        | "requires_shipping"
-        | "seo_title"
-        | "seo_description"
-      >;
-      product_variants: Table<
-        ProductVariantRow,
-        | Timestamps
-        | "title"
-        | "sku"
-        | "compare_at_paise"
-        | "inventory_quantity"
-        | "weight_grams"
-        | "length_cm"
-        | "breadth_cm"
-        | "height_cm"
-        | "position"
-      >;
-      product_images: Table<ProductImageRow, "id" | "created_at" | "alt" | "position">;
-      customers: Table<
-        CustomerRow,
-        | Timestamps
-        | "phone"
-        | "first_name"
-        | "last_name"
-        | "accepts_marketing"
-        | "notes"
-        | "total_orders"
-        | "total_spent_paise"
-      >;
-      discounts: Table<
-        DiscountRow,
-        | Timestamps
-        | "title"
-        | "applies_to"
-        | "product_ids"
-        | "tag"
-        | "min_subtotal_paise"
-        | "usage_limit"
-        | "usage_limit_per_customer"
-        | "once_per_customer"
-        | "combinable"
-        | "used_count"
-        | "starts_at"
-        | "ends_at"
-        | "active"
-      >;
-      discount_redemptions: Table<DiscountRedemptionRow, "id" | "created_at">;
-      checkouts: Table<
-        CheckoutRow,
-        | Timestamps
-        | "email"
-        | "line_items"
-        | "discount_code"
-        | "subtotal_paise"
-        | "discount_paise"
-        | "shipping_paise"
-        | "tax_paise"
-        | "total_paise"
-        | "shipping_address"
-        | "razorpay_order_id"
-        | "status"
-        | "completed_order_id"
-        | "recovery_email_sent_at"
-      >;
-      orders: Table<
-        OrderRow,
-        | Timestamps
-        | "order_number"
-        | "phone"
-        | "customer_id"
-        | "payment_status"
-        | "fulfillment_status"
-        | "order_status"
-        | "currency"
-        | "subtotal_paise"
-        | "discount_paise"
-        | "shipping_paise"
-        | "tax_paise"
-        | "total_paise"
-        | "refunded_paise"
-        | "discount_code"
-        | "shipping_address"
-        | "billing_address"
-        | "razorpay_order_id"
-        | "razorpay_payment_id"
-        | "razorpay_signature"
-        | "notes"
-        | "cancel_reason"
-        | "placed_at"
-        | "source"
-      >;
-      order_items: Table<
-        OrderItemRow,
-        "id" | "created_at" | "product_id" | "variant_id" | "variant_title" | "sku" | "weight_grams"
-      >;
-      inventory_adjustments: Table<
-        InventoryAdjustmentRow,
-        "id" | "created_at" | "order_id" | "note" | "created_by"
-      >;
-      shipments: Table<
-        ShipmentRow,
-        | Timestamps
-        | "provider"
-        | "shiprocket_order_id"
-        | "shiprocket_shipment_id"
-        | "awb_code"
-        | "courier_name"
-        | "label_url"
-        | "manifest_url"
-        | "status"
-        | "tracking_url"
-        | "shipped_at"
-        | "delivered_at"
-        | "raw"
-      >;
-      webhook_outbox: Table<
-        WebhookOutboxRow,
-        "id" | "created_at" | "status" | "attempts" | "next_attempt_at" | "last_error" | "sent_at"
-      >;
-      events: Table<EventRow, Timestamps | "location" | "description" | "link" | "published">;
-      settings: Table<SettingRow, "value" | "is_public" | "updated_at">;
-      admin_users: Table<AdminUserRow, Timestamps | "user_id" | "role" | "name" | "last_login_at">;
-      audit_log: Table<
-        AuditLogRow,
-        "id" | "created_at" | "admin_user_id" | "admin_email" | "entity_id" | "diff"
-      >;
-      rate_limits: Table<RateLimitRow, "window_start" | "count">;
-    };
-    Views: { [_ in never]: never };
+      admin_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          last_login_at: string | null
+          name: string
+          role: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          last_login_at?: string | null
+          name?: string
+          role?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          last_login_at?: string | null
+          name?: string
+          role?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          admin_email: string
+          admin_user_id: string | null
+          created_at: string
+          diff: Json
+          entity_id: string | null
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_email?: string
+          admin_user_id?: string | null
+          created_at?: string
+          diff?: Json
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_email?: string
+          admin_user_id?: string | null
+          created_at?: string
+          diff?: Json
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkouts: {
+        Row: {
+          completed_order_id: string | null
+          created_at: string
+          discount_code: string | null
+          discount_paise: number
+          email: string | null
+          id: string
+          line_items: Json
+          razorpay_order_id: string | null
+          recovery_email_sent_at: string | null
+          shipping_address: Json | null
+          shipping_paise: number
+          status: string
+          subtotal_paise: number
+          tax_paise: number
+          total_paise: number
+          updated_at: string
+        }
+        Insert: {
+          completed_order_id?: string | null
+          created_at?: string
+          discount_code?: string | null
+          discount_paise?: number
+          email?: string | null
+          id?: string
+          line_items?: Json
+          razorpay_order_id?: string | null
+          recovery_email_sent_at?: string | null
+          shipping_address?: Json | null
+          shipping_paise?: number
+          status?: string
+          subtotal_paise?: number
+          tax_paise?: number
+          total_paise?: number
+          updated_at?: string
+        }
+        Update: {
+          completed_order_id?: string | null
+          created_at?: string
+          discount_code?: string | null
+          discount_paise?: number
+          email?: string | null
+          id?: string
+          line_items?: Json
+          razorpay_order_id?: string | null
+          recovery_email_sent_at?: string | null
+          shipping_address?: Json | null
+          shipping_paise?: number
+          status?: string
+          subtotal_paise?: number
+          tax_paise?: number
+          total_paise?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkouts_completed_order_id_fkey"
+            columns: ["completed_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          accepts_marketing: boolean
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          notes: string
+          phone: string | null
+          total_orders: number
+          total_spent_paise: number
+          updated_at: string
+        }
+        Insert: {
+          accepts_marketing?: boolean
+          created_at?: string
+          email: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string
+          phone?: string | null
+          total_orders?: number
+          total_spent_paise?: number
+          updated_at?: string
+        }
+        Update: {
+          accepts_marketing?: boolean
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string
+          phone?: string | null
+          total_orders?: number
+          total_spent_paise?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      discount_redemptions: {
+        Row: {
+          amount_paise: number
+          created_at: string
+          customer_email: string
+          discount_id: string
+          id: string
+          order_id: string
+        }
+        Insert: {
+          amount_paise: number
+          created_at?: string
+          customer_email: string
+          discount_id: string
+          id?: string
+          order_id: string
+        }
+        Update: {
+          amount_paise?: number
+          created_at?: string
+          customer_email?: string
+          discount_id?: string
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_redemptions_discount_id_fkey"
+            columns: ["discount_id"]
+            isOneToOne: false
+            referencedRelation: "discounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discounts: {
+        Row: {
+          active: boolean
+          applies_to: string
+          code: string
+          combinable: boolean
+          created_at: string
+          ends_at: string | null
+          id: string
+          min_subtotal_paise: number | null
+          once_per_customer: boolean
+          product_ids: string[] | null
+          starts_at: string
+          tag: string | null
+          title: string
+          type: string
+          updated_at: string
+          usage_limit: number | null
+          usage_limit_per_customer: number | null
+          used_count: number
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          applies_to?: string
+          code: string
+          combinable?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          min_subtotal_paise?: number | null
+          once_per_customer?: boolean
+          product_ids?: string[] | null
+          starts_at?: string
+          tag?: string | null
+          title?: string
+          type: string
+          updated_at?: string
+          usage_limit?: number | null
+          usage_limit_per_customer?: number | null
+          used_count?: number
+          value: number
+        }
+        Update: {
+          active?: boolean
+          applies_to?: string
+          code?: string
+          combinable?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          min_subtotal_paise?: number | null
+          once_per_customer?: boolean
+          product_ids?: string[] | null
+          starts_at?: string
+          tag?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          usage_limit?: number | null
+          usage_limit_per_customer?: number | null
+          used_count?: number
+          value?: number
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          created_at: string
+          date: string
+          description: string
+          id: string
+          link: string
+          location: string
+          published: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          description?: string
+          id?: string
+          link?: string
+          location?: string
+          published?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          link?: string
+          location?: string
+          published?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_adjustments: {
+        Row: {
+          created_at: string
+          created_by: string
+          delta: number
+          id: string
+          note: string
+          order_id: string | null
+          reason: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          delta: number
+          id?: string
+          note?: string
+          order_id?: string | null
+          reason: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          delta?: number
+          id?: string
+          note?: string
+          order_id?: string | null
+          reason?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string | null
+          quantity: number
+          sku: string | null
+          title: string
+          total_paise: number
+          unit_price_paise: number
+          variant_id: string | null
+          variant_title: string
+          weight_grams: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id?: string | null
+          quantity: number
+          sku?: string | null
+          title: string
+          total_paise: number
+          unit_price_paise: number
+          variant_id?: string | null
+          variant_title?: string
+          weight_grams?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          sku?: string | null
+          title?: string
+          total_paise?: number
+          unit_price_paise?: number
+          variant_id?: string | null
+          variant_title?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          billing_address: Json | null
+          cancel_reason: string | null
+          created_at: string
+          currency: string
+          customer_id: string | null
+          discount_code: string | null
+          discount_paise: number
+          email: string
+          fulfillment_status: string
+          id: string
+          notes: string
+          order_number: string
+          order_status: string
+          payment_status: string
+          phone: string | null
+          placed_at: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          refunded_paise: number
+          shipping_address: Json
+          shipping_paise: number
+          source: string
+          subtotal_paise: number
+          tax_paise: number
+          total_paise: number
+          updated_at: string
+        }
+        Insert: {
+          billing_address?: Json | null
+          cancel_reason?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          discount_code?: string | null
+          discount_paise?: number
+          email: string
+          fulfillment_status?: string
+          id?: string
+          notes?: string
+          order_number?: string
+          order_status?: string
+          payment_status?: string
+          phone?: string | null
+          placed_at?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          refunded_paise?: number
+          shipping_address?: Json
+          shipping_paise?: number
+          source?: string
+          subtotal_paise?: number
+          tax_paise?: number
+          total_paise?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_address?: Json | null
+          cancel_reason?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          discount_code?: string | null
+          discount_paise?: number
+          email?: string
+          fulfillment_status?: string
+          id?: string
+          notes?: string
+          order_number?: string
+          order_status?: string
+          payment_status?: string
+          phone?: string | null
+          placed_at?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          refunded_paise?: number
+          shipping_address?: Json
+          shipping_paise?: number
+          source?: string
+          subtotal_paise?: number
+          tax_paise?: number
+          total_paise?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_images: {
+        Row: {
+          alt: string
+          created_at: string
+          id: string
+          position: number
+          product_id: string
+          url: string
+        }
+        Insert: {
+          alt?: string
+          created_at?: string
+          id?: string
+          position?: number
+          product_id: string
+          url: string
+        }
+        Update: {
+          alt?: string
+          created_at?: string
+          id?: string
+          position?: number
+          product_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          breadth_cm: number
+          compare_at_paise: number | null
+          created_at: string
+          height_cm: number
+          id: string
+          inventory_quantity: number
+          length_cm: number
+          position: number
+          price_paise: number
+          product_id: string
+          sku: string | null
+          title: string
+          updated_at: string
+          weight_grams: number
+        }
+        Insert: {
+          breadth_cm?: number
+          compare_at_paise?: number | null
+          created_at?: string
+          height_cm?: number
+          id?: string
+          inventory_quantity?: number
+          length_cm?: number
+          position?: number
+          price_paise: number
+          product_id: string
+          sku?: string | null
+          title?: string
+          updated_at?: string
+          weight_grams?: number
+        }
+        Update: {
+          breadth_cm?: number
+          compare_at_paise?: number | null
+          created_at?: string
+          height_cm?: number
+          id?: string
+          inventory_quantity?: number
+          length_cm?: number
+          position?: number
+          price_paise?: number
+          product_id?: string
+          sku?: string | null
+          title?: string
+          updated_at?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          created_at: string
+          description_md: string
+          handle: string
+          hsn_code: string
+          id: string
+          requires_shipping: boolean
+          seo_description: string | null
+          seo_title: string | null
+          status: string
+          subtitle: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_md?: string
+          handle: string
+          hsn_code?: string
+          id?: string
+          requires_shipping?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
+          status?: string
+          subtitle?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_md?: string
+          handle?: string
+          hsn_code?: string
+          id?: string
+          requires_shipping?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
+          status?: string
+          subtitle?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          is_public: boolean
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          is_public?: boolean
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          is_public?: boolean
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      shipments: {
+        Row: {
+          awb_code: string | null
+          courier_name: string | null
+          created_at: string
+          delivered_at: string | null
+          id: string
+          label_url: string | null
+          manifest_url: string | null
+          order_id: string
+          provider: string
+          raw: Json
+          shipped_at: string | null
+          shiprocket_order_id: string | null
+          shiprocket_shipment_id: string | null
+          status: string
+          tracking_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          awb_code?: string | null
+          courier_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          label_url?: string | null
+          manifest_url?: string | null
+          order_id: string
+          provider?: string
+          raw?: Json
+          shipped_at?: string | null
+          shiprocket_order_id?: string | null
+          shiprocket_shipment_id?: string | null
+          status?: string
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          awb_code?: string | null
+          courier_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          label_url?: string | null
+          manifest_url?: string | null
+          order_id?: string
+          provider?: string
+          raw?: Json
+          shipped_at?: string | null
+          shiprocket_order_id?: string | null
+          shiprocket_shipment_id?: string | null
+          status?: string
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          sent_at: string | null
+          status: string
+          topic: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload: Json
+          sent_at?: string | null
+          status?: string
+          topic: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+          topic?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
       create_order_from_checkout: {
         Args: {
-          p_checkout_id: string;
-          p_razorpay_order_id: string;
-          p_razorpay_payment_id: string;
-          p_razorpay_signature: string;
-          p_source?: string;
-        };
-        Returns: Json;
-      };
+          p_checkout_id: string
+          p_razorpay_order_id: string
+          p_razorpay_payment_id: string
+          p_razorpay_signature: string
+          p_source?: string
+        }
+        Returns: Json
+      }
       rate_limit_hit: {
-        Args: { p_key: string; p_limit: number; p_window_seconds: number };
-        Returns: boolean;
-      };
-    };
-    Enums: { [_ in never]: never };
-    CompositeTypes: { [_ in never]: never };
-  };
-};
+        Args: { p_key: string; p_limit: number; p_window_seconds: number }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
