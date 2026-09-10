@@ -2,9 +2,12 @@
 
 import BookCover from "./BookCover";
 import { useCart } from "@/context/CartContext";
+import { formatPaise } from "@/lib/format";
+import type { StorefrontProduct } from "@/lib/commerce-types";
 
-export default function Products() {
-  const { buyNow, isCheckingOut } = useCart();
+export default function Products({ product }: { product: StorefrontProduct | null }) {
+  const { buyNow, isCheckingOut, hasProduct } = useCart();
+  const variant = product?.variants[0];
 
   return (
     <section id="products" className="relative">
@@ -34,20 +37,29 @@ export default function Products() {
               <BookCover />
             </div>
 
-            <h3 className="font-display font-black text-[26px] leading-tight text-night">Nandu in Muziris</h3>
+            <h3 className="font-display font-black text-[26px] leading-tight text-night">
+              {product?.title ?? "Nandu in Muziris"}
+            </h3>
             <p className="mt-3 font-body font-light leading-relaxed text-[14px] opacity-85" style={{ color: "#2a3855" }}>
-              A beautifully illustrated children&apos;s book about a young crow searching for home in the
-              ancient port of Muziris, rooted in Kerala&apos;s history, culture, and memory.
+              {product?.descriptionMd
+                ? stripMarkdown(product.descriptionMd)
+                : "A beautifully illustrated children's book about a young crow searching for home in the ancient port of Muziris, rooted in Kerala's history, culture, and memory."}
             </p>
 
             <div className="mt-auto pt-8 flex flex-wrap items-end justify-between gap-x-4 gap-y-5">
               <div className="flex items-baseline gap-3">
-                <span className="font-display text-[28px] text-night">₹700</span>
-                <span className="font-body font-light text-[15px] line-through opacity-50">₹1,400</span>
+                <span className="font-display text-[28px] text-night">
+                  {variant ? formatPaise(variant.pricePaise) : "—"}
+                </span>
+                {variant?.compareAtPaise ? (
+                  <span className="font-body font-light text-[15px] line-through opacity-50">
+                    {formatPaise(variant.compareAtPaise)}
+                  </span>
+                ) : null}
               </div>
               <button
                 onClick={buyNow}
-                disabled={isCheckingOut}
+                disabled={isCheckingOut || !hasProduct}
                 className="btn-night px-8 py-3.5 text-[12px] tracking-[.24em] font-body font-normal shrink-0"
               >
                 {isCheckingOut ? "Placing order…" : "Order now"}
@@ -98,4 +110,14 @@ export default function Products() {
       <div className="h-px mx-6 md:mx-14" style={{ background: "linear-gradient(to right, transparent, rgba(35,47,72,.18), transparent)" }} />
     </section>
   );
+}
+
+/** The card wants one plain sentence, not rendered markdown. */
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`#>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }

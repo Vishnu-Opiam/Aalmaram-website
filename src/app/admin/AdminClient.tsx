@@ -1,8 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
-
-import { signOut } from "./actions";
+import { useCallback, useEffect, useState } from "react";
 
 interface EventRecord {
   id: string;
@@ -30,7 +28,6 @@ export default function AdminClient() {
   const [editing, setEditing] = useState<EventRecord | null>(null);
   const [form, setForm] = useState<Omit<EventRecord, "id">>(EMPTY);
   const [saving, setSaving] = useState(false);
-  const [, startTransition] = useTransition();
 
   const load = useCallback(async () => {
     try {
@@ -103,12 +100,6 @@ export default function AdminClient() {
     }
   };
 
-  const logout = () => {
-    startTransition(() => {
-      void signOut();
-    });
-  };
-
   const field = (k: keyof typeof form) => ({
     value: form[k],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -116,18 +107,10 @@ export default function AdminClient() {
   });
 
   return (
-    <main className="max-w-[920px] mx-auto px-6 md:px-10 py-16">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <div className="text-[10.5px] tracking-[.34em] font-body font-light opacity-60">AALMARAM</div>
-          <h1 className="mt-3 font-display font-black text-[34px] display-tight" style={{ color: "var(--night)" }}>
-            Events
-          </h1>
-        </div>
-        <button onClick={logout} className="qlink text-[12px] tracking-[.24em] font-body font-light">
-          Sign out
-        </button>
-      </div>
+    <div>
+      <h1 className="font-display font-black text-[34px] display-tight" style={{ color: "var(--night)" }}>
+        Events
+      </h1>
 
       {error && (
         <p className="mt-6 text-[13px] font-body p-3 rounded" style={{ color: "var(--spice)", background: "rgba(164,66,44,.08)" }}>
@@ -220,6 +203,6 @@ export default function AdminClient() {
           </ul>
         )}
       </div>
-    </main>
+    </div>
   );
 }

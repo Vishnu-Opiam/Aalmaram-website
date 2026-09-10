@@ -13,8 +13,11 @@ import ProgressRail from "@/components/ProgressRail";
 import RevealObserver from "@/components/RevealObserver";
 import SmoothScroll from "@/components/SmoothScroll";
 import PreOrderModal from "@/components/PreOrderModal";
+import { getFeaturedProduct } from "@/lib/commerce";
 
-export default function Home() {
+export default async function Home() {
+  const product = await getFeaturedProduct();
+
   return (
     <>
       <Header />
@@ -22,7 +25,7 @@ export default function Home() {
       <a id="top" />
       <Hero />
       <Marquee />
-      <Products />
+      <Products product={product} />
       <AboutAalmaram />
       <Updates />
       <Collaborate />

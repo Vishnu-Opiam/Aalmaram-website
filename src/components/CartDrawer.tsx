@@ -3,12 +3,14 @@
 import { useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 
-function fmt(n: number) {
-  return "₹ " + n.toLocaleString("en-IN");
+/** Paise in, rupees out. */
+function fmt(paise: number) {
+  return "₹ " + (paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
 
 export default function CartDrawer() {
-  const { items, isOpen, closeCart, addItem, changeQty, removeItem, subtotal, checkout, isCheckingOut } = useCart();
+  const { items, isOpen, closeCart, addItem, changeQty, removeItem, subtotalPaise, checkout, isCheckingOut, hasProduct } =
+    useCart();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,13 +50,17 @@ export default function CartDrawer() {
               <p className="mt-3 text-[13px] font-body font-light opacity-70 max-w-[28ch] mx-auto leading-relaxed">
                 When you are ready, add a copy and it will rest here until you decide.
               </p>
-              <button onClick={addItem} className="mt-8 btn-night px-7 py-3 text-[11px] tracking-[.28em]">
+              <button
+                onClick={addItem}
+                disabled={!hasProduct}
+                className="mt-8 btn-night px-7 py-3 text-[11px] tracking-[.28em]"
+              >
                 Add the book
               </button>
             </div>
           ) : (
             items.map((it, idx) => (
-              <article key={it.id + idx} className="flex gap-5">
+              <article key={it.variantId + idx} className="flex gap-5">
                 <div
                   className="shrink-0 rounded-sm overflow-hidden"
                   style={{
@@ -83,7 +89,7 @@ export default function CartDrawer() {
                     </button>
                   </div>
                 </div>
-                <div className="font-display text-[17px] whitespace-nowrap">{fmt(it.price * it.qty)}</div>
+                <div className="font-display text-[17px] whitespace-nowrap">{fmt(it.pricePaise * it.qty)}</div>
               </article>
             ))
           )}
@@ -92,7 +98,7 @@ export default function CartDrawer() {
         <div className="px-7 pb-8 pt-4 space-y-5" style={{ borderTop: "1px solid rgba(35,47,72,.15)" }}>
           <div className="flex items-baseline justify-between font-body">
             <span className="text-[11px] tracking-[.28em] opacity-70">SUBTOTAL</span>
-            <span className="font-display text-[24px]">{fmt(subtotal)}</span>
+            <span className="font-display text-[24px]">{fmt(subtotalPaise)}</span>
           </div>
 
           <button 

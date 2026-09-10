@@ -8,7 +8,7 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
 ## Phase status
 
 - [x] **P1 Foundation** — schema, RLS, clients, admin auth, seed script
-- [ ] P2 Products + storefront read
+- [x] **P2 Products + storefront read** — admin CRUD, Supabase Storage, /shop + PDP
 - [ ] P3 Checkout + payments
 - [ ] P4 Orders admin + discounts
 - [ ] P5 Shipping
@@ -76,6 +76,55 @@ privileges so later migrations inherit them.
 
 ---
 
+## P2 — what landed
+
+**Storefront now reads Supabase.**
+
+- `src/lib/commerce.ts` — anon-key reads with no session, so RLS is the only
+  thing deciding what comes back. `src/lib/commerce-types.ts` holds the shapes
+  the client also needs, and `src/lib/format.ts` the money formatting.
+- Homepage, new `/shop`, new `/products/[handle]` all render from the database.
+  The PDP shows price, compare-at, the saving, markdown description, shipping
+  from `settings`, SKU and tags.
+- `src/components/Markdown.tsx` — paragraphs, bold, italic, rendered as React
+  elements rather than `dangerouslySetInnerHTML`, so a description typed in the
+  admin cannot inject markup into the storefront.
+- `CartContext` carries Supabase variant ids and integer paise. Storage key
+  bumped to `aalmaram_cart_v2`, because v1 carts held Shopify GIDs that mean
+  nothing now. A stored cart is re-priced against the database on load.
+- `/checkout` is a basket review with payment disabled — phase 3 fills it in.
+- No storefront path reads `SHOPIFY_*` any more. `src/lib/shopify.ts` is now
+  unreferenced and is deleted in phase 8.
+
+**Products admin** at `/admin/products`, behind the new admin shell (nav +
+signed-in email + sign out; events moved to `/admin/events`).
+
+- List with search, status, price, stock, low-stock highlighting.
+- Create and edit: title, handle, subtitle, markdown description, status, tags,
+  HSN, SEO, price, compare-at, SKU, weight and dimensions.
+- Images upload to the `product-images` bucket; an orphaned file is removed if
+  its row fails to insert, and only files in our bucket are deleted from storage.
+- Stock is not editable in the form. It moves through an adjust panel with a
+  reason and note, guarded against going negative, and every change lands in
+  `inventory_adjustments`. Every mutation writes `audit_log`.
+- Archive always; hard delete only while nothing has ever been ordered.
+
+**Verified in the browser** against the live database: `/shop` and the PDP
+render the seeded book; adding to the basket stores the real Supabase variant id
+(`39d5d5fc…`) and integer paise; `/checkout` shows the basket; `?discount=NAGMA15`
+is still captured and stripped from the URL; a draft product inserted directly is
+absent from `/shop` and its PDP 404s; changing `price_paise` to 71250 in the
+database changed the homepage to ₹712.50, which is what proves the page is
+reading Supabase rather than the old hard-coded figures.
+
+**One bug found in the preview:** `Products.tsx` imported `StorefrontProduct`
+from the `server-only` `commerce.ts`. A type-only import is erased by TypeScript
+but Turbopack still puts the module in the client graph, so dev threw
+"'server-only' cannot be imported from a Client Component module" on every
+render. Types moved to `commerce-types.ts`.
+
+---
+
 ## Decisions
 
 1. **No Cache Components.** `use cache` needs `cacheComponents: true`, which
@@ -109,9 +158,11 @@ privileges so later migrations inherit them.
 
 ## Open items
 
-1. **A signed-in `/admin` render is still unverified.** Everything up to the
-   password prompt is confirmed; the dashboard behind it has not been seen with a
-   real session. Needs the owner to sign in once.
+1. **The whole admin UI is unverified.** Sign-in needs a password, which is the
+   owner's to type. `/admin` correctly redirects (307) when signed out, and the
+   server actions behind the screens are typed and build clean, but no admin
+   screen has been rendered with a real session — including everything P2 added.
+   This is the first thing to check on the next sign-in.
 2. **`nivedith@aalmaram.com` has no Supabase Auth user.** Allowlisted, but
    cannot sign in until the account is created in the dashboard.
 3. **Order numbering starts at `AAL1002`.** The verification probe consumed

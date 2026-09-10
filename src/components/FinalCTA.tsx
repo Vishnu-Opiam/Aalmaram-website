@@ -3,7 +3,7 @@
 import { useCart } from "@/context/CartContext";
 
 export default function FinalCTA() {
-  const { productPrice, buyNow, isCheckingOut } = useCart();
+  const { buyNow, isCheckingOut, hasProduct } = useCart();
 
   return (
     <section id="cta" className="relative">
@@ -25,7 +25,7 @@ export default function FinalCTA() {
           </p>
 
           <div className="mt-14 flex justify-center">
-            <button onClick={buyNow} disabled={isCheckingOut} className="btn-night px-14 py-5 text-[13px] tracking-[.3em] font-body font-normal">
+            <button onClick={buyNow} disabled={isCheckingOut || !hasProduct} className="btn-night px-14 py-5 text-[13px] tracking-[.3em] font-body font-normal">
               {isCheckingOut ? "Placing order…" : "Order now"}
             </button>
           </div>

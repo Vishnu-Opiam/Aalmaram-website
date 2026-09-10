@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 
 export default function StickyBar() {
-  const { productPrice, productImage, buyNow, isCheckingOut } = useCart();
+  const { productImage, productTitle, buyNow, isCheckingOut, hasProduct } = useCart();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -33,13 +33,13 @@ export default function StickyBar() {
             <img src={productImage} alt="Thumbnail" className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0">
-            <div className="font-display italic text-[15px] truncate">Nandu in Muziris</div>
+            <div className="font-display italic text-[15px] truncate">{productTitle}</div>
             <div className="text-[11px] tracking-[.22em] opacity-75 font-body">First edition</div>
           </div>
         </div>
         <button
           onClick={buyNow}
-          disabled={isCheckingOut}
+          disabled={isCheckingOut || !hasProduct}
           className="ml-auto px-6 py-2.5 text-[12px] tracking-[.22em] font-body"
           style={{ background: "var(--ivory)", color: "var(--night)" }}
         >

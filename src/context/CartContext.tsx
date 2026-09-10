@@ -1,17 +1,32 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-import { getFirstProduct, createCheckout } from "@/lib/shopify";
+import { useRouter } from "next/navigation";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import type { StorefrontProduct } from "@/lib/commerce-types";
 
-const STORAGE_KEY = "aalmaram_cart_v1";
+// v2: v1 carts held Shopify variant GIDs, which mean nothing now. Bumping the
+// key drops them rather than carrying dead ids into checkout.
+const STORAGE_KEY = "aalmaram_cart_v2";
 const DISCOUNT_STORAGE_KEY = "aalmaram_discount_v1";
 
 export interface CartItem {
-  id: string;
+  /** Supabase product_variants.id — the only id checkout will accept. */
+  variantId: string;
+  productId: string;
+  handle: string;
   title: string;
   subtitle: string;
-  price: number;
-  compareAt: number;
+  /** Integer paise, matching the database. Never rupees, never a float. */
+  pricePaise: number;
+  compareAtPaise: number | null;
   qty: number;
   image: string;
 }
@@ -21,9 +36,11 @@ interface CartContextType {
   isOpen: boolean;
   toastVisible: boolean;
   isCheckingOut: boolean;
+  hasProduct: boolean;
   openCart: () => void;
   closeCart: () => void;
   addItem: () => void;
+  addVariant: (product: StorefrontProduct, variantId?: string) => void;
   changeQty: (index: number, delta: number) => void;
   removeItem: (index: number) => void;
   dismissToast: () => void;
@@ -31,31 +48,52 @@ interface CartContextType {
   buyNow: () => void;
   clearCart: () => void;
   totalCount: number;
-  subtotal: number;
-  productPrice: number;
+  /** Integer paise. */
+  subtotalPaise: number;
+  productPricePaise: number;
+  productCompareAtPaise: number | null;
   productImage: string;
+  productTitle: string;
 }
-
-const DEFAULT_PRODUCT: CartItem = {
-  id: "nandu-01",
-  title: "Nandu in Muziris",
-  subtitle: "First edition · Numbered",
-  price: 700,
-  compareAt: 1400,
-  qty: 1,
-  image: "/books/Cover.png",
-};
 
 const CartContext = createContext<CartContextType | null>(null);
 
-export function CartProvider({ children }: { children: ReactNode }) {
+function toCartItem(product: StorefrontProduct, variantId?: string): CartItem | null {
+  const variant = variantId
+    ? product.variants.find((v) => v.id === variantId)
+    : product.variants[0];
+  if (!variant) return null;
+
+  return {
+    variantId: variant.id,
+    productId: product.id,
+    handle: product.handle,
+    title: product.title,
+    subtitle: product.subtitle,
+    pricePaise: variant.pricePaise,
+    compareAtPaise: variant.compareAtPaise,
+    qty: 1,
+    image: product.images[0]?.url ?? "/books/Cover.png",
+  };
+}
+
+export function CartProvider({
+  product,
+  children,
+}: {
+  /** The featured product, read from Supabase on the server. */
+  product: StorefrontProduct | null;
+  children: ReactNode;
+}) {
+  const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const [productTemplate, setProductTemplate] = useState<CartItem>(DEFAULT_PRODUCT);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const template = useMemo(() => (product ? toCartItem(product) : null), [product]);
 
   useEffect(() => {
     try {
@@ -90,68 +128,80 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [items, hydrated]);
 
-  // When the buyer navigates to Shopify checkout we set isCheckingOut=true and
-  // never reset it (the page unloads). If they hit "back", the browser may
-  // restore this page from the bfcache with its JS state frozen, leaving the
-  // button stuck on "Placing order…". Reset on pageshow so it recovers without
-  // a manual refresh.
+  // Prices live in the database, not in the basket. If a price changed while a
+  // cart sat in localStorage, correct it on load — and checkout re-prices from
+  // the database anyway, so this only keeps the displayed figure honest.
+  useEffect(() => {
+    if (!hydrated || !product) return;
+    // Reconciling a stored cart against server prices is exactly what this
+    // effect is for; the update is a no-op unless something actually moved.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setItems((prev) => {
+      let changed = false;
+      const next = prev.map((it) => {
+        const variant = product.variants.find((v) => v.id === it.variantId);
+        if (!variant) return it;
+        if (variant.pricePaise === it.pricePaise && variant.compareAtPaise === it.compareAtPaise) {
+          return it;
+        }
+        changed = true;
+        return {
+          ...it,
+          pricePaise: variant.pricePaise,
+          compareAtPaise: variant.compareAtPaise,
+        };
+      });
+      return changed ? next : prev;
+    });
+  }, [hydrated, product]);
+
+  // The buyer leaves for /checkout with isCheckingOut set. Coming back via the
+  // bfcache would otherwise leave the button stuck on "Placing order…".
   useEffect(() => {
     const reset = () => setIsCheckingOut(false);
     window.addEventListener("pageshow", reset);
     return () => window.removeEventListener("pageshow", reset);
   }, []);
 
-  useEffect(() => {
-    getFirstProduct().then((prod) => {
-      if (prod && prod.variants.edges[0]) {
-        const variant = prod.variants.edges[0].node;
-        // Handle both Admin API (string) and Storefront API (object with amount)
-        const getPrice = (p: unknown) =>
-          parseFloat(
-            typeof p === "string" ? p : ((p as { amount?: string } | null)?.amount ?? "0")
-          );
-        
-        const shopifyCompareAt = getPrice(variant.price);
-        const shopifyImage = "/books/Cover.png";
-
-        setProductTemplate({
-          id: variant.id,
-          title: prod.title,
-          subtitle: "First edition · Numbered",
-          price: 700,
-          compareAt: shopifyCompareAt || 1400,
-          qty: 1,
-          image: shopifyImage,
-        });
-
-        // Update items if they were added before the fetch
-        setItems(prev => prev.map(it => {
-          if (it.id === "nandu-01") {
-            return { ...it, id: variant.id, price: 700, compareAt: shopifyCompareAt || 1400, title: prod.title, image: shopifyImage };
-          }
-          return it;
-        }));
-      }
-    }).catch(console.error);
-  }, []);
-
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);
   const dismissToast = useCallback(() => setToastVisible(false), []);
 
-  const addItem = useCallback(() => {
-    setItems((prev) => {
-      const existing = prev.find((it) => it.id === productTemplate.id);
-      if (existing) {
-        return prev.map((it) => (it.id === productTemplate.id ? { ...it, qty: it.qty + 1 } : it));
-      }
-      return [...prev, { ...productTemplate }];
-    });
+  const flashToast = useCallback(() => {
     setToastVisible(true);
     if (toastTimer) clearTimeout(toastTimer);
-    const t = setTimeout(() => setToastVisible(false), 2600);
-    setToastTimer(t);
-  }, [toastTimer, productTemplate]);
+    setToastTimer(setTimeout(() => setToastVisible(false), 2600));
+  }, [toastTimer]);
+
+  const push = useCallback((entry: CartItem) => {
+    setItems((prev) => {
+      const existing = prev.find((it) => it.variantId === entry.variantId);
+      if (existing) {
+        return prev.map((it) =>
+          it.variantId === entry.variantId ? { ...it, qty: it.qty + 1 } : it
+        );
+      }
+      return [...prev, entry];
+    });
+  }, []);
+
+  /** Adds the featured product — what the homepage buttons call. */
+  const addItem = useCallback(() => {
+    if (!template) return;
+    push(template);
+    flashToast();
+  }, [template, push, flashToast]);
+
+  /** Adds a specific product/variant — what the shop and PDP call. */
+  const addVariant = useCallback(
+    (p: StorefrontProduct, variantId?: string) => {
+      const entry = toCartItem(p, variantId);
+      if (!entry) return;
+      push(entry);
+      flashToast();
+    },
+    [push, flashToast]
+  );
 
   const changeQty = useCallback((index: number, delta: number) => {
     setItems((prev) =>
@@ -163,55 +213,50 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Create a Shopify draft order for the given line items and send the buyer to
-  // Shopify's hosted checkout, where address + payment (Razorpay) are handled.
-  const startCheckout = useCallback(
-    async (lineItems: { variantId: string; quantity: number }[]) => {
-      const valid = lineItems.filter((li) => li.quantity > 0);
-      if (valid.length === 0) return;
-      setIsCheckingOut(true);
-      try {
-        const discountCode = localStorage.getItem(DISCOUNT_STORAGE_KEY) || undefined;
-        const url = await createCheckout(valid, discountCode);
-        window.location.href = url;
-      } catch (err) {
-        console.error("Checkout failed:", err);
-        setIsCheckingOut(false);
-        alert("Sorry, we couldn't reach secure checkout just now. Please try again in a moment.");
-      }
-    },
-    []
-  );
-
   const checkout = useCallback(() => {
-    startCheckout(items.map((it) => ({ variantId: it.id, quantity: it.qty })));
-  }, [items, startCheckout]);
+    if (items.length === 0) return;
+    setIsCheckingOut(true);
+    setIsOpen(false);
+    router.push("/checkout");
+  }, [items.length, router]);
 
   const buyNow = useCallback(() => {
-    // Reflect the added copy in the cart, then check out the whole basket.
-    const merged = new Map<string, number>();
-    for (const it of items) merged.set(it.id, (merged.get(it.id) ?? 0) + it.qty);
-    merged.set(productTemplate.id, (merged.get(productTemplate.id) ?? 0) + 1);
-
-    setItems((prev) => {
-      const existing = prev.find((it) => it.id === productTemplate.id);
-      if (existing) {
-        return prev.map((it) => (it.id === productTemplate.id ? { ...it, qty: it.qty + 1 } : it));
-      }
-      return [...prev, { ...productTemplate }];
-    });
-
-    startCheckout([...merged.entries()].map(([variantId, quantity]) => ({ variantId, quantity })));
-  }, [items, productTemplate, startCheckout]);
+    if (!template) return;
+    push(template);
+    setIsCheckingOut(true);
+    router.push("/checkout");
+  }, [template, push, router]);
 
   const clearCart = useCallback(() => setItems([]), []);
 
   const totalCount = items.reduce((s, i) => s + i.qty, 0);
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotalPaise = items.reduce((s, i) => s + i.pricePaise * i.qty, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, isOpen, toastVisible, isCheckingOut, openCart, closeCart, addItem, changeQty, removeItem, dismissToast, checkout, buyNow, clearCart, totalCount, subtotal, productPrice: productTemplate.price, productImage: productTemplate.image }}
+      value={{
+        items,
+        isOpen,
+        toastVisible,
+        isCheckingOut,
+        hasProduct: Boolean(template),
+        openCart,
+        closeCart,
+        addItem,
+        addVariant,
+        changeQty,
+        removeItem,
+        dismissToast,
+        checkout,
+        buyNow,
+        clearCart,
+        totalCount,
+        subtotalPaise,
+        productPricePaise: template?.pricePaise ?? 0,
+        productCompareAtPaise: template?.compareAtPaise ?? null,
+        productImage: template?.image ?? "/books/Cover.png",
+        productTitle: template?.title ?? "",
+      }}
     >
       {children}
     </CartContext.Provider>

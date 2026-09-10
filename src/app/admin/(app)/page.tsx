@@ -1,8 +1,6 @@
-import AdminClient from "../AdminClient";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Admin - Aalmaram" };
-export const dynamic = "force-dynamic";
-
-export default function AdminPage() {
-  return <AdminClient />;
+/** Products are the day-to-day job, so /admin lands there. */
+export default function AdminIndexPage() {
+  redirect("/admin/products");
 }
