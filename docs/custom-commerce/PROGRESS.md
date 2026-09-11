@@ -220,9 +220,15 @@ gives ₹700 − ₹105 + ₹60 = ₹655 on `/checkout`, priced entirely server-
 
 ## Open items
 
-1. **No real Razorpay payment has been taken.** Every path around it is
-   verified with test secrets, but Razorpay's own API and the checkout modal
-   have never run. Needs test keys (below) and one live test-mode order.
+1. **No test-mode payment has completed yet.** Razorpay test keys are in and
+   verified (`rzp_test_…`): `/api/checkout` creates a real Razorpay test order
+   at the server-priced amount, and the modal opens with the buyer's name, email
+   and phone prefilled. But no order row exists yet — the owner's attempt used
+   the UPI QR, which a real UPI app cannot pay in test mode. Next step: pay with
+   card `4111 1111 1111 1111` (any future expiry, any CVV, then "Success"), and
+   confirm the order, items, stock 50 → 49 and the `order.paid` outbox row.
+   An earlier paste of **live** keys (`rzp_live_…`) was caught before any call
+   reached Razorpay; always check the prefix before starting the server.
 2. **No email has been sent.** `RESEND_API_KEY` is unset, so
    `sendOrderConfirmation` reports "skipped" and logs it.
 3. **The whole admin UI is unverified.** Sign-in needs a password, which is the

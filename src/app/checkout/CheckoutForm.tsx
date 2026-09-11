@@ -42,6 +42,17 @@ declare global {
   }
 }
 
+/**
+ * Razorpay only prefills a contact it recognises as a full international
+ * number, so a bare "98765 43210" left the buyer retyping it in the popup.
+ */
+function toRazorpayContact(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) return `+91${digits}`;
+  if (digits.length === 12 && digits.startsWith("91")) return `+${digits}`;
+  return phone;
+}
+
 const input = "preorder-input font-body text-[15px] w-full";
 const label = "text-[10px] tracking-[.24em] font-body opacity-70";
 
@@ -160,7 +171,7 @@ export default function CheckoutForm() {
         prefill: {
           name: payload.address.name,
           email: payload.email,
-          contact: payload.address.phone,
+          contact: toRazorpayContact(payload.address.phone),
         },
         theme: { color: "#232f48" },
         handler: async (result) => {
