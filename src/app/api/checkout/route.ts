@@ -20,6 +20,8 @@ const bodySchema = z.object({
     .max(20),
   discountCode: z.string().trim().max(64).nullish(),
   email: z.string().trim().email("That email doesn't look right.").max(254),
+  // Absent means no. Only an explicit true from the ticked box is consent.
+  acceptsMarketing: z.boolean().optional().default(false),
   address: z.object({
     name: z.string().trim().min(1, "A name is required.").max(120),
     phone: z
@@ -81,7 +83,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { lines, discountCode, email, address } = parsed.data;
+  const { lines, discountCode, email, address, acceptsMarketing } = parsed.data;
 
   let cart;
   try {
@@ -116,6 +118,7 @@ export async function POST(request: Request) {
       tax_paise: cart.taxPaise,
       total_paise: cart.totalPaise,
       shipping_address: { ...address, email: email.toLowerCase() },
+      accepts_marketing: acceptsMarketing,
       status: "active",
     })
     .select("id")

@@ -10,7 +10,7 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
 - [x] **P1 Foundation** — schema, RLS, clients, admin auth, seed script
 - [x] **P2 Products + storefront read** — admin CRUD, Supabase Storage, /shop + PDP
 - [x] **P3 Checkout + payments** — pricing, Razorpay, atomic order creation
-- [ ] P4 Orders admin + discounts
+- [x] **P4 Orders admin + discounts** — plus customers and a real `/admin` home
 - [ ] P5 Shipping
 - [ ] P6 Events feed + n8n
 - [ ] P7 Analytics + settings
@@ -187,6 +187,91 @@ gives ₹700 − ₹105 + ₹60 = ₹655 on `/checkout`, priced entirely server-
 
 ---
 
+## P4 — what landed
+
+Scope agreed with the owner was wider than PLAN §11: orders, discounts,
+**customers** (listed in PLAN §7 but built by no phase in §11), and a real
+`/admin` home.
+
+**Migrations** (4 files)
+
+| File | Contents |
+|---|---|
+| `…20260911090000_p4_schema` | `refunds` table (RLS on, anon revoked, `service_role` granted); `order_items.restocked_quantity`; `checkouts.accepts_marketing` + `refunded` status; `customers.marketing_consent_at`; outbox index on `payload->>order_id` |
+| `…090100_order_admin_rpcs` | `adjust_inventory`, `record_out_of_stock_payment`, `begin_refund`, `complete_refund`, `fail_refund`, `cancel_order`, and private helpers for restock checks, restocking and audit rows |
+| `…090200_create_order_rpc_v2` | out of stock raises its own SQLSTATE `OOS01`; free-shipping codes now count as used; marketing consent that never flips yes → no |
+| `…090300_admin_sales_summary` | today / this week, bucketed with `at time zone 'Asia/Kolkata'` (Monday weeks); `orders.placed_at` index |
+
+**How money moves.** Stock, statuses, customer totals, the n8n outbox and the
+audit row change together in one Postgres transaction or not at all. Razorpay
+can't join that transaction, so a refund is two-phase: `begin_refund` reserves
+the amount (a `pending` row, checked against total − refunded − in flight), the
+app calls Razorpay with our refund id as the `receipt`, then `complete_refund`
+books it atomically and idempotently (or `fail_refund` releases it).
+`src/lib/refunds.ts#issueRefund` always asks Razorpay for the payment's refunds
+first, so a retry after a crash or timeout books the existing refund instead of
+sending a second one. Cancel = refund everything left + restock (+ `order.cancelled`);
+refused once fulfilled. A variant deleted since the sale is skipped, reported,
+and marked as dealt with, instead of failing the refund.
+
+**Sold out after payment** (owner's decision). The RPC raises `OOS01`; whichever
+caller sees it first records one `out_of_stock` refund against the checkout
+(unique per checkout). The browser gets a 409 saying the payment will be
+refunded; the **webhook** sends the refund, and on the call that books it,
+emails the buyer (`src/emails/OutOfStockRefund.tsx`) and the founder. Transient
+Razorpay failures → webhook 500 so Razorpay retries; a refusal → row `failed`,
+webhook 200, shown on the admin home with **Refund now**. Once refunded, that
+checkout can never become an order, even if stock returns before a retry. Every
+other RPC failure still retries as before.
+
+**Screens**
+
+| Route | Does |
+|---|---|
+| `/admin` | orders + revenue today and this week (net of refunds), orders waiting to be sent (oldest first), latest orders, low stock, and "needs attention": stuck refunds, failed sold-out refunds, failed outbox rows |
+| `/admin/orders` | filter by payment and fulfilment status, search number / email / name, 25 a page |
+| `/admin/orders/[id]` | items, totals, refunds list with **Check with Razorpay**, refund panel (amount + per-line restock), cancel panel, address editable until fulfilled (guarded in the update itself), Razorpay ids + dashboard link, resend confirmation, notes, and a timeline built from `audit_log`, `inventory_adjustments` and `webhook_outbox` |
+| `/admin/discounts`, `/new`, `/[id]` | every PLAN §3 rule, generate-code (no 0/O/1/I/L), copy the `?discount=` link, activate/deactivate, redemptions; delete only if never used. `combinable` hidden (column kept) |
+| `/admin/customers`, `/[id]` | search, sort by newest / spend / orders, opted-in filter; order history, distinct addresses, notes, marketing toggle (opting in asks how they agreed, recorded in the audit log) |
+
+**Checkout** gained an unticked opt-in box (DPDP: an active yes), stored on the
+checkout and applied to the customer by the RPC.
+
+**Also fixed:** `adjustInventory` in the products admin could report success
+and log an adjustment when its optimistic update matched no row; it now goes
+through `adjust_inventory()`. `createRefund` refuses any amount that isn't a
+positive integer — Razorpay treats a missing amount as "refund everything".
+
+**Verified.**
+
+- `scripts/verify/p4-test.mjs` — 90 checks against the live database: refund
+  larger than the order, zero/negative, over-restocking (including split across
+  duplicate lines), another order's item, pending reservations counting against
+  both money and stock, completing twice, reusing a Razorpay refund id, cancel
+  twice, cancel a fulfilled order, restock a deleted variant, **a constraint
+  firing mid-restock after the first line was already restocked rolls
+  everything back**, a late completion that would over-refund rolls back,
+  `cancel_order` guards, `OOS01` vs "no email", out-of-stock recorded once and
+  never turned into an order after restocking, free-shipping redemptions,
+  consent never flipping, and anon refused on every new function and on `refunds`.
+- `scripts/verify/p4-app-test.mjs` — 20 checks through the running app:
+  sold-out callback → 409 + one refund row; webhook retried on a transient
+  Razorpay error without a second row; webhook alone records the refund, and a
+  Razorpay refusal marks it failed and acknowledges; opt-in stored only for a
+  real `true`; all six new admin routes 307 to login when signed out.
+- `rpc-test.mjs` 25/25 and `p3-test.mjs` 33/33 still pass. `p3-test` needed its
+  discount fixtures backdated a minute: this machine's clock runs ~2 s behind
+  Supabase, so codes defaulting to the database's `now()` looked "not active
+  yet" to the app. Codes made in the admin take their start time from the app's
+  clock, so this was a fixture issue, not a pricing one.
+- All new client components rendered in dev (Turbopack) through a temporary
+  public page, since signed out the proxy redirects before a page compiles;
+  no `server-only` leaks. Page deleted afterwards.
+- The admin screens themselves have **not** been used with a real session —
+  that needs the owner to sign in.
+
+---
+
 ## Decisions
 
 1. **No Cache Components.** `use cache` needs `cacheComponents: true`, which
@@ -204,6 +289,25 @@ gives ₹700 − ₹105 + ₹60 = ₹655 on `/checkout`, priced entirely server-
    `service_role` has `BYPASSRLS`, so forcing buys nothing here.
 6. **Default privileges revoked** in `public` for `anon`/`authenticated`, so a
    table added later is invisible to PostgREST until explicitly granted.
+7. **Sold out after payment is auto-refunded; nothing else is** (owner, P4).
+   Its own SQLSTATE `OOS01`; the webhook refunds, recorded so a retry can't
+   refund twice; buyer and founder emailed.
+8. **Refunds are two-phase with a Razorpay lookup before every send** (P4). A
+   failed *order* refund is never re-sent — the admin starts a new one, which
+   re-checks the amount. A failed *out-of-stock* refund may be re-sent: it is
+   always the full captured amount, which Razorpay itself won't exceed.
+9. **Discount limits are checked when pricing, not re-checked in the order RPC.**
+   The RPC runs after the money is captured; refusing there would leave a paid
+   buyer with no order. Two simultaneous checkouts could overshoot a usage limit
+   by one — acceptable at this volume. A cancelled order keeps its redemption
+   (the slot is not given back).
+10. **Marketing consent** (owner, P4): unticked by default; a later order never
+    turns yes into no; `marketing_consent_at` records when; opting someone in
+    from the admin asks how they agreed. n8n newsletter sync waits for P6.
+11. **All admin dates in Indian time**; today/week bucketed in SQL with
+    `at time zone 'Asia/Kolkata'`, Monday-start weeks (owner, P4).
+12. **`combinable` hidden** in the discount form; checkout takes one code, so it
+    would do nothing. Column kept (owner, P4).
 
 ### Additions to the PLAN §3 schema
 
@@ -215,6 +319,13 @@ gives ₹700 − ₹105 + ₹60 = ₹655 on `/checkout`, priced entirely server-
 - `settings.is_public` — decides what the anon RLS policy exposes.
 - `rate_limits` + `rate_limit_hit()` — PLAN §12 requires rate limiting and there
   is no Redis in this stack.
+- `refunds` (P4) — one row per attempt to send money back; the amount a
+  partial refund reserves, the Razorpay id that makes booking idempotent, and
+  the owner of an out-of-stock refund (a checkout, since no order exists).
+- `order_items.restocked_quantity` (P4) — so partial refunds can't restock more
+  copies than were sold.
+- `checkouts.accepts_marketing`, `checkouts.status = 'refunded'`,
+  `customers.marketing_consent_at` (P4).
 
 ---
 
@@ -231,15 +342,30 @@ gives ₹700 − ₹105 + ₹60 = ₹655 on `/checkout`, priced entirely server-
    reached Razorpay; always check the prefix before starting the server.
 2. **No email has been sent.** `RESEND_API_KEY` is unset, so
    `sendOrderConfirmation` reports "skipped" and logs it.
-3. **The whole admin UI is unverified.** Sign-in needs a password, which is the
-   owner's to type. `/admin` correctly redirects (307) when signed out, and the
-   server actions behind the screens are typed and build clean, but no admin
-   screen has been rendered with a real session — including everything P2 added.
-   This is the first thing to check on the next sign-in.
+3. **The whole admin UI is unverified with a real session.** Sign-in needs a
+   password, which is the owner's to type. Every admin route correctly
+   redirects (307) when signed out; P4's client components render in dev and
+   every money- and stock-moving function is tested against the live database,
+   but no admin screen from P2 or P4 has been used signed in. Checklist for the
+   owner, after the test payment: `/admin` shows the order under "Waiting to be
+   sent"; open it and check the timeline; refund ₹1 with no restock (a real
+   Razorpay test refund); edit the address; resend the confirmation (reports
+   "not sent" until Resend is set up); create a discount with **Generate**, copy
+   its link, open it in a private window, and check the basket applies it;
+   `/admin/customers` lists you; then cancel the order with restock on and check
+   stock goes back to 50.
+10. **A real Razorpay refund has not run yet.** The refund path has reached
+    Razorpay test mode (lookup and a refused refund for an unknown payment), but
+    moving money needs a captured payment — see item 1 and the checklist in 3.
+11. **Free-shipping redemptions record ₹0** as their amount, since the checkout
+    doesn't store the shipping it waived. Good enough for usage limits; P7's
+    "discount usage" card may want the waived amount.
+12. **No link from a customer to their NocoDB record** (PLAN §7). There is no
+    NocoDB id on our side to link with; best done in P6 when events flow there.
 4. **`nivedith@aalmaram.com` has no Supabase Auth user.** Allowlisted, but
    cannot sign in until the account is created in the dashboard.
-5. **Order numbering starts at `AAL1002`.** The verification probe consumed
-   `AAL1001`. Cosmetic; the sequence can be reset on request.
+5. **Order numbers skip.** Test suites consume the sequence (after P4's runs,
+   real orders start somewhere past `AAL1027`). Cosmetic; can be reset before go-live on request.
 6. **Roll the `service_role` key.** It passed through a chat transcript during
    setup. Never committed, but worth rotating before go-live.
 7. **Shipping rates in `settings` are placeholders** (₹60 flat, free above ₹999).

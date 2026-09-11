@@ -115,6 +115,7 @@ export type Database = {
       }
       checkouts: {
         Row: {
+          accepts_marketing: boolean
           completed_order_id: string | null
           created_at: string
           discount_code: string | null
@@ -133,6 +134,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepts_marketing?: boolean
           completed_order_id?: string | null
           created_at?: string
           discount_code?: string | null
@@ -151,6 +153,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepts_marketing?: boolean
           completed_order_id?: string | null
           created_at?: string
           discount_code?: string | null
@@ -186,6 +189,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          marketing_consent_at: string | null
           notes: string
           phone: string | null
           total_orders: number
@@ -199,6 +203,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          marketing_consent_at?: string | null
           notes?: string
           phone?: string | null
           total_orders?: number
@@ -212,6 +217,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          marketing_consent_at?: string | null
           notes?: string
           phone?: string | null
           total_orders?: number
@@ -419,6 +425,7 @@ export type Database = {
           order_id: string
           product_id: string | null
           quantity: number
+          restocked_quantity: number
           sku: string | null
           title: string
           total_paise: number
@@ -433,6 +440,7 @@ export type Database = {
           order_id: string
           product_id?: string | null
           quantity: number
+          restocked_quantity?: number
           sku?: string | null
           title: string
           total_paise: number
@@ -447,6 +455,7 @@ export type Database = {
           order_id?: string
           product_id?: string | null
           quantity?: number
+          restocked_quantity?: number
           sku?: string | null
           title?: string
           total_paise?: number
@@ -737,6 +746,75 @@ export type Database = {
         }
         Relationships: []
       }
+      refunds: {
+        Row: {
+          amount_paise: number
+          checkout_id: string | null
+          created_at: string
+          created_by: string
+          error: string | null
+          id: string
+          kind: string
+          order_id: string | null
+          processed_at: string | null
+          razorpay_payment_id: string
+          razorpay_refund_id: string | null
+          reason: string
+          restock: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paise: number
+          checkout_id?: string | null
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          id?: string
+          kind: string
+          order_id?: string | null
+          processed_at?: string | null
+          razorpay_payment_id: string
+          razorpay_refund_id?: string | null
+          reason?: string
+          restock?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paise?: number
+          checkout_id?: string | null
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          order_id?: string | null
+          processed_at?: string | null
+          razorpay_payment_id?: string
+          razorpay_refund_id?: string | null
+          reason?: string
+          restock?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_checkout_id_fkey"
+            columns: ["checkout_id"]
+            isOneToOne: false
+            referencedRelation: "checkouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           is_public: boolean
@@ -864,6 +942,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_inventory: {
+        Args: {
+          p_actor?: string
+          p_delta: number
+          p_note?: string
+          p_reason: string
+          p_variant_id: string
+        }
+        Returns: number
+      }
+      admin_sales_summary: { Args: never; Returns: Json }
+      begin_refund: {
+        Args: {
+          p_actor?: string
+          p_amount_paise: number
+          p_cancel?: boolean
+          p_order_id: string
+          p_reason?: string
+          p_restock?: Json
+        }
+        Returns: Json
+      }
+      cancel_order: {
+        Args: {
+          p_actor?: string
+          p_order_id: string
+          p_reason?: string
+          p_restock?: Json
+        }
+        Returns: Json
+      }
+      complete_refund: {
+        Args: {
+          p_actor?: string
+          p_razorpay_refund_id: string
+          p_refund_id: string
+        }
+        Returns: Json
+      }
       create_order_from_checkout: {
         Args: {
           p_checkout_id: string
@@ -874,9 +991,21 @@ export type Database = {
         }
         Returns: Json
       }
+      fail_refund: {
+        Args: { p_actor?: string; p_error: string; p_refund_id: string }
+        Returns: undefined
+      }
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
+      }
+      record_out_of_stock_payment: {
+        Args: {
+          p_actor?: string
+          p_checkout_id: string
+          p_razorpay_payment_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

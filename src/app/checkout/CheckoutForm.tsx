@@ -128,6 +128,7 @@ export default function CheckoutForm() {
       lines,
       discountCode: discountCode || null,
       email: String(form.get("email") ?? ""),
+      acceptsMarketing: form.get("accepts_marketing") === "on",
       address: {
         name: String(form.get("name") ?? ""),
         phone: String(form.get("phone") ?? ""),
@@ -252,6 +253,19 @@ export default function CheckoutForm() {
               <label className="block">
                 <span className={label}>EMAIL *</span>
                 <input name="email" type="email" required autoComplete="email" className={input} />
+              </label>
+              {/* Unticked by default: consent under the DPDP Act has to be an
+                  active yes, never a box someone forgot to clear. */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="accepts_marketing"
+                  className="mt-[3px] shrink-0"
+                  style={{ accentColor: "var(--night)" }}
+                />
+                <span className="text-[13px] font-body font-light leading-relaxed opacity-80">
+                  Send me the occasional letter about new books and events. Unsubscribe any time.
+                </span>
               </label>
             </div>
           </section>

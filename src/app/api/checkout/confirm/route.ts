@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { finaliseOrder } from "@/lib/orders";
+import { finaliseOrder, OutOfStockError } from "@/lib/orders";
 import { verifyCheckoutSignature } from "@/lib/razorpay";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       razorpayPaymentId,
       razorpaySignature,
       source: "web",
+      actor: "checkout",
     });
     // /order/confirmed reads this rather than taking an order number from the
     // URL: order numbers are sequential and guessable, and an email address has
@@ -92,6 +93,20 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ orderNumber: order.orderNumber });
   } catch (err) {
+    // Sold out in the seconds between quote and payment. The refund is
+    // recorded; the webhook sends it and emails the buyer.
+    if (err instanceof OutOfStockError) {
+      return NextResponse.json(
+        {
+          error:
+            "We're so sorry — the last copy sold while your payment was going through. Your payment will be refunded in full, and we'll email you to confirm.",
+          paid: true,
+          outOfStock: true,
+        },
+        { status: 409 }
+      );
+    }
+
     console.error("Order creation failed after a verified payment", err);
     // The customer has paid. Never imply otherwise — the webhook is still
     // coming, and support can reconcile from razorpay_order_id.

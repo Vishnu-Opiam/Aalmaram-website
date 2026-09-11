@@ -5,6 +5,10 @@ import { signOut } from "../actions";
 export const dynamic = "force-dynamic";
 
 const NAV = [
+  { href: "/admin", label: "Today" },
+  { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/customers", label: "Customers" },
+  { href: "/admin/discounts", label: "Discounts" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/events", label: "Events" },
 ];
@@ -24,14 +28,14 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
         style={{ borderBottom: "1px solid rgba(35,47,72,.12)" }}
       >
         <div className="max-w-[1180px] mx-auto px-6 md:px-10 py-4 flex items-center gap-8">
-          <Link href="/admin/products" className="shrink-0">
+          <Link href="/admin" className="shrink-0">
             <div className="text-[10.5px] tracking-[.34em] font-body font-light opacity-60">
               AALMARAM
             </div>
             <div className="font-display italic text-[17px] leading-tight">Admin</div>
           </Link>
 
-          <nav className="flex items-center gap-6">
+          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {NAV.map((item) => (
               <Link
                 key={item.href}

@@ -2,6 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 import OrderConfirmation, { type OrderConfirmationProps } from "@/emails/OrderConfirmation";
+import OutOfStockRefund, { type OutOfStockRefundProps } from "@/emails/OutOfStockRefund";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -88,6 +89,67 @@ export async function sendOrderConfirmation(
         .catch((err) => console.error("Founder alert failed", err));
     }
 
+    return { sent: true };
+  } catch (err) {
+    return { sent: false, error: err instanceof Error ? err.message : "Unknown email failure" };
+  }
+}
+
+/**
+ * A payment was captured for stock that had gone, and has been refunded in
+ * full. Tells the buyer, and tells the founder, who will want to know both that
+ * a sale was lost and that the stock count needs a look.
+ */
+export async function sendOutOfStockRefund(
+  to: string,
+  props: Omit<OutOfStockRefundProps, "supportEmail"> & {
+    razorpayPaymentId: string;
+    razorpayRefundId: string | null;
+  }
+): Promise<{ sent: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    return { sent: false, error: "RESEND_API_KEY is not set — out-of-stock refund email skipped." };
+  }
+
+  try {
+    const { from, supportEmail, notify } = await storeSettings();
+    const amount = `₹${(props.amountPaise / 100).toLocaleString("en-IN")}`;
+    const { error } = await client().emails.send({
+      from,
+      to,
+      replyTo: supportEmail,
+      subject: "Your Aalmaram payment has been refunded",
+      react: OutOfStockRefund({
+        name: props.name,
+        amountPaise: props.amountPaise,
+        items: props.items,
+        supportEmail,
+      }),
+    });
+
+    if (notify) {
+      await client()
+        .emails.send({
+          from,
+          to: notify,
+          subject: `Sold out after payment — ${amount} refunded to ${to}`,
+          text: [
+            "A payment was captured, but the stock had gone by the time the order was written,",
+            "so no order was created and the payment was refunded in full.",
+            "",
+            `Buyer: ${props.name} <${to}>`,
+            `Items: ${props.items.join(", ") || "(unknown)"}`,
+            `Amount: ${amount}`,
+            `Razorpay payment: ${props.razorpayPaymentId}`,
+            `Razorpay refund: ${props.razorpayRefundId ?? "(pending)"}`,
+            "",
+            "Worth checking the stock count in the admin.",
+          ].join("\n"),
+        })
+        .catch((err) => console.error("Founder out-of-stock alert failed", err));
+    }
+
+    if (error) return { sent: false, error: error.message };
     return { sent: true };
   } catch (err) {
     return { sent: false, error: err instanceof Error ? err.message : "Unknown email failure" };

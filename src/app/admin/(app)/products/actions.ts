@@ -365,9 +365,10 @@ export async function deleteImage(formData: FormData): Promise<void> {
 const REASONS = ["restock", "manual", "cancellation", "refund", "import"] as const;
 
 /**
- * The only way stock moves outside an order. Writes the adjustment row first so
- * there is always a trail, then applies it with a guarded update that cannot
- * take the count below zero.
+ * The only way stock moves outside an order or a refund. adjust_inventory()
+ * applies the change and writes its adjustment row in one guarded statement,
+ * so a count can never go below zero, and a change that didn't happen is never
+ * logged as if it had.
  */
 export async function adjustInventory(
   _prev: ActionState,
@@ -389,41 +390,36 @@ export async function adjustInventory(
   }
 
   const db = createAdminClient();
-  const { data: variant } = await db
-    .from("product_variants")
-    .select("id, inventory_quantity, product_id")
-    .eq("id", variantId)
-    .single();
+  const { data: next, error: adjustError } = await db.rpc("adjust_inventory", {
+    p_variant_id: variantId,
+    p_delta: delta,
+    p_reason: reason,
+    p_note: note,
+    p_actor: session.email,
+  });
 
-  if (!variant) return { error: "That variant no longer exists." };
-
-  const next = variant.inventory_quantity + delta;
-  if (next < 0) {
-    return { error: `Only ${variant.inventory_quantity} in stock — that would go negative.` };
+  if (adjustError) {
+    if (adjustError.code === "P0002") return { error: "That variant no longer exists." };
+    if (adjustError.code === "23514") {
+      return { error: "That would take stock below zero. Nothing was changed." };
+    }
+    return { error: `Could not adjust stock: ${adjustError.message}` };
   }
 
-  const { error: updateError } = await db
+  const { data: variant } = await db
     .from("product_variants")
-    .update({ inventory_quantity: next })
+    .select("product_id")
     .eq("id", variantId)
-    .eq("inventory_quantity", variant.inventory_quantity);
-
-  if (updateError) return { error: `Could not adjust stock: ${updateError.message}` };
-
-  await db.from("inventory_adjustments").insert({
-    variant_id: variantId,
-    delta,
-    reason: reason as (typeof REASONS)[number],
-    note,
-    created_by: session.email,
-  });
+    .single();
 
   await recordAudit(session, {
     action: "inventory.adjust",
     entityType: "product_variant",
     entityId: variantId,
-    diff: { delta, reason, from: variant.inventory_quantity, to: next },
+    diff: { delta, reason, from: next - delta, to: next },
   });
+
+  if (!variant) return { error: "", ok: `Stock is now ${next}.` };
 
   const { data: product } = await db
     .from("products")

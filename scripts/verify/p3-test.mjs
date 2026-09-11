@@ -74,9 +74,13 @@ const { data: variant } = await db
 const codes = {};
 async function makeDiscount(suffix, fields) {
   const code = `P3${suffix}${Date.now()}`.toUpperCase();
+  // Backdated a minute: left to the database default (its own now()), a code
+  // can look "not active yet" to an app server whose clock runs a second or
+  // two behind Supabase's.
+  const startsAt = new Date(Date.now() - 60_000).toISOString();
   const { data, error } = await db
     .from("discounts")
-    .insert({ code, ...fields })
+    .insert({ code, starts_at: startsAt, ...fields })
     .select("id, code")
     .single();
   if (error) throw error;

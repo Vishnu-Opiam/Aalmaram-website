@@ -88,18 +88,47 @@ export function fetchPayment(paymentId: string): Promise<RazorpayPayment> {
   return call<RazorpayPayment>(`/payments/${paymentId}`, { method: "GET" });
 }
 
+export interface RazorpayRefund {
+  id: string;
+  payment_id: string;
+  amount: number;
+  status: string;
+  receipt: string | null;
+  notes: Record<string, string> | [];
+}
+
+/**
+ * The amount is required. Razorpay treats a missing amount as "refund
+ * everything", so an accidental 0 or undefined must never reach it.
+ * `receipt` carries our refunds.id, which is how a refund whose outcome we
+ * never heard back about is found again.
+ */
 export function createRefund(params: {
   paymentId: string;
-  amountPaise?: number;
+  amountPaise: number;
+  receipt: string;
   notes?: Record<string, string>;
-}): Promise<{ id: string; amount: number; status: string }> {
-  return call(`/payments/${params.paymentId}/refund`, {
+}): Promise<RazorpayRefund> {
+  if (!Number.isInteger(params.amountPaise) || params.amountPaise <= 0) {
+    throw new Error(`Refusing to send Razorpay a refund of ${params.amountPaise} paise.`);
+  }
+  return call<RazorpayRefund>(`/payments/${params.paymentId}/refund`, {
     method: "POST",
     body: JSON.stringify({
-      ...(params.amountPaise ? { amount: params.amountPaise } : {}),
+      amount: params.amountPaise,
+      receipt: params.receipt,
       notes: params.notes ?? {},
     }),
   });
+}
+
+/** Every refund already made against a payment, newest first. */
+export async function fetchRefunds(paymentId: string): Promise<RazorpayRefund[]> {
+  const result = await call<{ items: RazorpayRefund[] }>(
+    `/payments/${paymentId}/refunds?count=100`,
+    { method: "GET" }
+  );
+  return result.items ?? [];
 }
 
 /** Constant-time compare that tolerates differing lengths without leaking them. */

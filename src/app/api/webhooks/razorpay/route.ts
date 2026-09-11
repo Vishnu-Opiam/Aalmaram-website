@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { finaliseOrder } from "@/lib/orders";
+import { finaliseOrder, OutOfStockError, refundOutOfStock } from "@/lib/orders";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -88,6 +88,7 @@ export async function POST(request: Request) {
       // is no per-payment checkout signature to record here.
       razorpaySignature: "",
       source: "web",
+      actor: "razorpay-webhook",
     });
 
     return NextResponse.json({
@@ -96,6 +97,23 @@ export async function POST(request: Request) {
       created: !order.alreadyExisted,
     });
   } catch (err) {
+    // The one failure that is refunded rather than retried: the stock was gone
+    // by the time the order could be written. The refund is already recorded
+    // against the checkout, so however many times Razorpay retries this, the
+    // money goes back once.
+    if (err instanceof OutOfStockError) {
+      const refund = await refundOutOfStock(err.refundId, "razorpay-webhook");
+      if (refund.ok) {
+        return NextResponse.json({ received: true, outOfStock: true, refunded: true });
+      }
+      console.error(`Out-of-stock refund ${err.refundId} did not go through: ${refund.error}`);
+      // Transient (Razorpay unreachable, or refunded but not yet booked): let
+      // Razorpay retry. Refused outright: acknowledge, and leave it on the
+      // admin home for a human.
+      return refund.pending
+        ? NextResponse.json({ error: "Refund not finished" }, { status: 500 })
+        : NextResponse.json({ received: true, outOfStock: true, refunded: false });
+    }
     console.error("Webhook could not create the order", err);
     // 500 makes Razorpay retry, which is what we want for a transient failure.
     return NextResponse.json({ error: "Could not create the order" }, { status: 500 });
