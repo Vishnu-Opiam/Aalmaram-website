@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
 import { formatDateTime, formatPaise } from "@/lib/format";
+import { parcelDefaultsFor } from "@/lib/shipping";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CreateShipmentPanel, ShipmentCard, type ShipmentView } from "../ShipmentPanels";
 import {
   AddressForm,
   CancelPanel,
@@ -32,6 +34,11 @@ const AUDIT_TITLES: Record<string, string> = {
   "order.address.update": "Address changed",
   "order.notes.update": "Notes edited",
   "order.confirmation.resend": "Confirmation email resent",
+  "shipment.create": "Shipment created",
+  "shipment.awb": "AWB assigned",
+  "shipment.pickup": "Pickup booked",
+  "shipment.status": "Shipment status",
+  "shipment.cancel": "Shipment cancelled",
 };
 
 type Diff = Record<string, unknown>;
@@ -66,6 +73,24 @@ function auditDetail(action: string, diff: Diff): string | undefined {
         .join(" · ");
     case "order.confirmation.resend":
       return diff.sent ? "Sent" : `Not sent: ${String(diff.error ?? "")}`;
+    case "shipment.create":
+      return `Shiprocket order ${String(diff.shiprocket_order_id ?? "")}`;
+    case "shipment.awb":
+      return [
+        `AWB ${String(diff.awb_code ?? "")}`,
+        diff.courier_name ? String(diff.courier_name) : "",
+        diff.notified ? "tracking email sent" : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    case "shipment.pickup":
+      return diff.pickup_token ? `Token ${String(diff.pickup_token)}` : undefined;
+    case "shipment.status":
+      return [String(diff.status ?? "").replace(/_/g, " "), String(diff.detail ?? "")]
+        .filter(Boolean)
+        .join(" · ");
+    case "shipment.cancel":
+      return diff.reason ? `“${String(diff.reason)}”` : undefined;
     default:
       return undefined;
   }
@@ -87,7 +112,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
 
   if (!order) notFound();
 
-  const [{ data: refunds }, { data: audit }, { data: stockMoves }, { data: outbox }] = await Promise.all([
+  const [{ data: refunds }, { data: audit }, { data: stockMoves }, { data: outbox }, { data: shipments }] =
+    await Promise.all([
     db.from("refunds").select("*").eq("order_id", id).order("created_at", { ascending: false }),
     db
       .from("audit_log")
@@ -105,6 +131,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       .select("id, topic, status, attempts, last_error, created_at, sent_at")
       .eq("payload->>order_id", id)
       .order("created_at", { ascending: false }),
+    db.from("shipments").select("*").eq("order_id", id).order("created_at", { ascending: false }),
   ]);
 
   const items = [...order.order_items].sort((a, b) => a.title.localeCompare(b.title));
@@ -118,6 +145,33 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     ["paid", "partially_refunded"].includes(order.payment_status);
   const canCancel = !cancelled && order.fulfillment_status === "unfulfilled" && inFlight === 0;
   const canEditAddress = !cancelled && order.fulfillment_status === "unfulfilled";
+
+  // One live shipment at a time; a cancelled one only survives in the timeline.
+  const liveShipment = (shipments ?? []).find((s) => s.status !== "cancelled") ?? null;
+  const canShip =
+    !cancelled &&
+    !liveShipment &&
+    inFlight === 0 &&
+    ["paid", "partially_refunded"].includes(order.payment_status) &&
+    !["cancelled", "returned"].includes(order.fulfillment_status);
+  const parcel = canShip ? await parcelDefaultsFor(order.id) : null;
+  const shipmentView: ShipmentView | null = liveShipment
+    ? {
+        id: liveShipment.id,
+        status: liveShipment.status,
+        statusDetail: liveShipment.status_detail ?? "",
+        shiprocketOrderId: liveShipment.shiprocket_order_id,
+        shiprocketShipmentId: liveShipment.shiprocket_shipment_id,
+        awbCode: liveShipment.awb_code,
+        courierName: liveShipment.courier_name,
+        labelUrl: liveShipment.label_url,
+        trackingUrl: liveShipment.tracking_url,
+        pickupToken: liveShipment.pickup_token_number,
+        shippedAt: liveShipment.shipped_at,
+        deliveredAt: liveShipment.delivered_at,
+        lastStatusAt: liveShipment.last_status_at,
+      }
+    : null;
 
   // Copies reserved by refunds still in flight can't be offered again.
   const reserved = new Map<string, number>();
@@ -300,6 +354,18 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           {canCancel && (
             <section className="p-7 rounded-lg" style={{ background: "rgba(164,66,44,.04)" }}>
               <CancelPanel orderId={order.id} remainingPaise={remaining} />
+            </section>
+          )}
+
+          {/* ── Shipping ─────────────────────────────────────── */}
+          {shipmentView && (
+            <section className="p-7 rounded-lg" style={{ background: "rgba(35,47,72,.04)" }}>
+              <ShipmentCard orderId={order.id} shipment={shipmentView} />
+            </section>
+          )}
+          {canShip && parcel && (
+            <section className="p-7 rounded-lg" style={{ background: "rgba(35,47,72,.04)" }}>
+              <CreateShipmentPanel orderId={order.id} parcel={parcel} />
             </section>
           )}
 

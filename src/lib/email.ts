@@ -3,6 +3,7 @@ import "server-only";
 import { Resend } from "resend";
 import OrderConfirmation, { type OrderConfirmationProps } from "@/emails/OrderConfirmation";
 import OutOfStockRefund, { type OutOfStockRefundProps } from "@/emails/OutOfStockRefund";
+import ShippingConfirmation, { type ShippingConfirmationProps } from "@/emails/ShippingConfirmation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -89,6 +90,36 @@ export async function sendOrderConfirmation(
         .catch((err) => console.error("Founder alert failed", err));
     }
 
+    return { sent: true };
+  } catch (err) {
+    return { sent: false, error: err instanceof Error ? err.message : "Unknown email failure" };
+  }
+}
+
+/**
+ * The parcel has a tracking number. Sent once, by whichever call actually
+ * stamped `shipped_at` — the AWB being assigned, or a webhook that got there
+ * first. Failure is reported, never thrown: the parcel has shipped either way.
+ */
+export async function sendShippingConfirmation(
+  to: string,
+  props: Omit<ShippingConfirmationProps, "supportEmail">
+): Promise<{ sent: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    return { sent: false, error: "RESEND_API_KEY is not set — shipping email skipped." };
+  }
+
+  try {
+    const { from, supportEmail } = await storeSettings();
+    const { error } = await client().emails.send({
+      from,
+      to,
+      replyTo: supportEmail,
+      subject: `Your Aalmaram order ${props.orderNumber} is on its way`,
+      react: ShippingConfirmation({ ...props, supportEmail }),
+    });
+
+    if (error) return { sent: false, error: error.message };
     return { sent: true };
   } catch (err) {
     return { sent: false, error: err instanceof Error ? err.message : "Unknown email failure" };

@@ -839,55 +839,79 @@ export type Database = {
       shipments: {
         Row: {
           awb_code: string | null
+          cancelled_at: string | null
           courier_name: string | null
           created_at: string
           delivered_at: string | null
+          expected_delivery_date: string | null
           id: string
           label_url: string | null
+          last_event_at: string | null
+          last_status_at: string | null
           manifest_url: string | null
           order_id: string
+          pickup_scheduled_at: string | null
+          pickup_token_number: string | null
           provider: string
           raw: Json
           shipped_at: string | null
           shiprocket_order_id: string | null
           shiprocket_shipment_id: string | null
+          shiprocket_status: string | null
           status: string
+          status_detail: string
           tracking_url: string | null
           updated_at: string
         }
         Insert: {
           awb_code?: string | null
+          cancelled_at?: string | null
           courier_name?: string | null
           created_at?: string
           delivered_at?: string | null
+          expected_delivery_date?: string | null
           id?: string
           label_url?: string | null
+          last_event_at?: string | null
+          last_status_at?: string | null
           manifest_url?: string | null
           order_id: string
+          pickup_scheduled_at?: string | null
+          pickup_token_number?: string | null
           provider?: string
           raw?: Json
           shipped_at?: string | null
           shiprocket_order_id?: string | null
           shiprocket_shipment_id?: string | null
+          shiprocket_status?: string | null
           status?: string
+          status_detail?: string
           tracking_url?: string | null
           updated_at?: string
         }
         Update: {
           awb_code?: string | null
+          cancelled_at?: string | null
           courier_name?: string | null
           created_at?: string
           delivered_at?: string | null
+          expected_delivery_date?: string | null
           id?: string
           label_url?: string | null
+          last_event_at?: string | null
+          last_status_at?: string | null
           manifest_url?: string | null
           order_id?: string
+          pickup_scheduled_at?: string | null
+          pickup_token_number?: string | null
           provider?: string
           raw?: Json
           shipped_at?: string | null
           shiprocket_order_id?: string | null
           shiprocket_shipment_id?: string | null
+          shiprocket_status?: string | null
           status?: string
+          status_detail?: string
           tracking_url?: string | null
           updated_at?: string
         }
@@ -953,6 +977,18 @@ export type Database = {
         Returns: number
       }
       admin_sales_summary: { Args: never; Returns: Json }
+      assign_shipment_awb: {
+        Args: {
+          p_actor?: string
+          p_awb_code: string
+          p_courier_name: string
+          p_label_url?: string
+          p_raw?: Json
+          p_shipment_id: string
+          p_tracking_url?: string
+        }
+        Returns: Json
+      }
       begin_refund: {
         Args: {
           p_actor?: string
@@ -973,6 +1009,10 @@ export type Database = {
         }
         Returns: Json
       }
+      cancel_shipment: {
+        Args: { p_actor?: string; p_reason?: string; p_shipment_id: string }
+        Returns: Json
+      }
       complete_refund: {
         Args: {
           p_actor?: string
@@ -991,6 +1031,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_shipment: {
+        Args: {
+          p_actor?: string
+          p_order_id: string
+          p_raw?: Json
+          p_shiprocket_order_id: string
+          p_shiprocket_shipment_id: string
+        }
+        Returns: Json
+      }
       fail_refund: {
         Args: { p_actor?: string; p_error: string; p_refund_id: string }
         Returns: undefined
@@ -1004,6 +1054,33 @@ export type Database = {
           p_actor?: string
           p_checkout_id: string
           p_razorpay_payment_id: string
+        }
+        Returns: Json
+      }
+      record_shipment_pickup: {
+        Args: {
+          p_actor?: string
+          p_pickup_token: string
+          p_raw?: Json
+          p_scheduled_at?: string
+          p_shipment_id: string
+        }
+        Returns: Json
+      }
+      set_shiprocket_token: {
+        Args: { p_expires_at: string; p_token: string }
+        Returns: undefined
+      }
+      update_shipment_status: {
+        Args: {
+          p_actor?: string
+          p_awb_code?: string
+          p_detail?: string
+          p_occurred_at?: string
+          p_raw?: Json
+          p_remote_status?: string
+          p_shipment_id?: string
+          p_status: string
         }
         Returns: Json
       }

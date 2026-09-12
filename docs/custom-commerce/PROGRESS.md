@@ -11,7 +11,7 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
 - [x] **P2 Products + storefront read** — admin CRUD, Supabase Storage, /shop + PDP
 - [x] **P3 Checkout + payments** — pricing, Razorpay, atomic order creation
 - [x] **P4 Orders admin + discounts** — plus customers and a real `/admin` home
-- [ ] P5 Shipping
+- [x] **P5 Shipping** — Shiprocket client, shipment RPCs, admin panels, webhook, tracking cron
 - [ ] P6 Events feed + n8n
 - [ ] P7 Analytics + settings
 - [ ] P8 Migration + cutover
@@ -272,6 +272,109 @@ positive integer — Razorpay treats a missing amount as "refund everything".
 
 ---
 
+## P5 — what landed
+
+**Built without Shiprocket credentials.** The owner has not supplied
+`SHIPROCKET_EMAIL` / `SHIPROCKET_PASSWORD` / the pickup nickname yet, so
+nothing here has spoken to Shiprocket. Everything on *our* side of the line is
+built and tested against the live database and the running app; the HTTP
+client itself is unexercised. See open item 13.
+
+**Migrations** (3 files)
+
+| File | Contents |
+|---|---|
+| `…20260912090000_p5_shipping` | widened `shipments_status_check` to Shiprocket's vocabulary; `shiprocket_status`, `status_detail`, `last_status_at`, `pickup_scheduled_at`, `pickup_token_number`, `expected_delivery_date`, `cancelled_at`; a one-live-shipment-per-order unique index; `set_shiprocket_token`, `create_shipment`, `assign_shipment_awb`, `record_shipment_pickup`, `update_shipment_status`, `cancel_shipment` and the private helpers |
+| `…090100_shipment_status_signature` | `update_shipment_status` takes the status first and either identifier optionally — the generated client types read a parameter without a default as required and non-null |
+| `…090200_shipment_event_clock` | `last_event_at`, so a Shiprocket event is only ever judged stale against another event (see the bug below) |
+
+**How a parcel moves.** `create_shipment` books the order at Shiprocket and —
+the decision the handoff asked for — is what makes the order `fulfilled`. That
+is earlier than the parcel moving, deliberately: from that moment the order is
+committed, and P4's guards must stop offering to cancel it or to edit the
+address it was booked with. `cancel_shipment` puts both back, and refuses once
+the parcel has left (the way back is an RTO, not a cancellation).
+
+`shipped_at`, the `order.shipped` outbox row and the tracking email fire
+**once**, from whichever came first: the AWB being assigned, or a webhook that
+got there before we recorded it. That is `private.mark_shipped`, a guarded
+`update … where shipped_at is null` whose return value is the permission to
+send the email. `rto_delivered` marks the order `returned`.
+
+**Shiprocket, over fetch** (`src/lib/shiprocket.ts`) — login, a token cached in
+`settings.shiprocket` and refreshed once on a 401, serviceability, adhoc order,
+AWB, label, pickup, track-by-AWB. Plus the two translations their API needs:
+their status vocabulary (by name and by numeric code) onto our twelve, and
+their naive `2026-09-12 14:05:00` — which means Indian time — into an instant.
+A login failure never echoes the request body, because it holds the password.
+
+`src/lib/shipping.ts` is the orchestration both the admin and the routes use.
+Where Shiprocket and Postgres can disagree it compensates rather than leaving a
+mess: if a shipment is created there but cannot be recorded here, the
+Shiprocket order is cancelled again.
+
+**Screens**
+
+| Route | Does |
+|---|---|
+| `/admin/orders/[id]` | a shipping panel: quote the couriers, edit the box, create the shipment; then AWB (optionally naming a courier), book a pickup, refresh from Shiprocket, label and tracking links, and cancel while it still can be |
+| `/admin/shipments` | every parcel with live status, AWB search, status filter, a "not picked up yet" queue, 25 a page |
+
+The order timeline now shows shipment creation, the AWB, pickups, every status
+change and cancellations, from the same `audit_log` it already read.
+
+**Routes** — `POST /api/webhooks/shiprocket` (constant-time `x-api-key`
+compare; they sign nothing, so the token is all there is) and
+`GET /api/cron/track`, guarded by `CRON_SECRET` and scheduled twice a day in
+`vercel.json`. Both go through the same `update_shipment_status`, so neither
+can double-stamp a date or send a second email.
+
+**Email** — `src/emails/ShippingConfirmation.tsx`, the same brand shell as the
+others, sent only by the call that actually stamped `shipped_at`.
+
+**Verified.**
+
+- `scripts/verify/p5-test.mjs` — 59 checks against the live database: a second
+  shipment on one order, an unknown order, an unpaid order, an order with a
+  refund in flight, a cancelled order; the AWB assigned twice, with a different
+  code, with no code; a status that repeats, one that arrives late, one that
+  would walk a delivered parcel backwards, one that is not in our vocabulary,
+  one naming no shipment at all; a webhook that lands before the AWB is
+  recorded (and the AWB then asking for no second email); an RTO marking the
+  order returned; cancelling before and after the parcel leaves, cancelling
+  twice, replacing a cancelled shipment; P4's own guards still holding while a
+  shipment is live and re-opening once it is gone; the token cache keeping the
+  pickup location; and anon refused on all six functions, on `shipments`, and
+  on the Shiprocket settings row.
+- `scripts/verify/p5-app-test.mjs` — 24 checks through the running app: the
+  webhook with no token, a wrong token, a token of another length, a malformed
+  body, no AWB, an unknown AWB, an unmapped status; a real sequence of events
+  including one sent only as a numeric code; the naive Indian timestamp read as
+  the right instant; `order.shipped` queued once and `order.delivered` once;
+  the cron refusing both a missing and a wrong secret and standing down while
+  Shiprocket is unconfigured; and `/admin/shipments` redirecting a stranger.
+- `rpc-test.mjs` 25/25 and `p4-test.mjs` 90/90 still pass.
+- Both new client components rendered in dev (Turbopack) through a temporary
+  public page — both states, before and after the AWB — with no console errors
+  and no `server-only` leak. Page deleted afterwards.
+- `npx tsc --noEmit` clean, `npm run lint` 0 errors (the same 11 pre-existing
+  warnings), `npm run build` green with `/admin/shipments`,
+  `/api/webhooks/shiprocket` and `/api/cron/track` in the manifest.
+
+**The bug the suite found.** `last_status_at` was stamped both by our own
+actions (creating the shipment, assigning the AWB) and by Shiprocket's events,
+and the out-of-order check compared the two. So an ordinary event — "picked up
+14:00", arriving after we assigned the AWB at 14:02 — was thrown away as stale,
+and with it the tracking email. Remote events now sequence against
+`last_event_at` alone. It failed on the first run of the suite, which is the
+argument for writing the suite.
+
+**The dev server on :3000 is not this app.** Every route there 404s, P3's
+included. The app suites were run against our own dev server on another port
+(`launch.json` has `autoPort`), passing `BASE_URL`.
+
+---
+
 ## Decisions
 
 1. **No Cache Components.** `use cache` needs `cacheComponents: true`, which
@@ -306,6 +409,17 @@ positive integer — Razorpay treats a missing amount as "refund everything".
     from the admin asks how they agreed. n8n newsletter sync waits for P6.
 11. **All admin dates in Indian time**; today/week bucketed in SQL with
     `at time zone 'Asia/Kolkata'`, Monday-start weeks (owner, P4).
+13. **Creating the shipment is what fulfils the order** (P5), not the parcel
+    moving. Fulfilling on despatch instead would leave a window in which an
+    order already committed to Shiprocket could still be cancelled or
+    re-addressed here. Cancelling the shipment reverses it.
+14. **Our twelve statuses, not Shiprocket's forty** (P5). Theirs are mapped on
+    by name and by code, the raw payload is always kept in `shipments.raw`, and
+    an unrecognised status is logged and ignored rather than guessed at.
+15. **One live shipment per order**, enforced by a partial unique index. A
+    cancelled one may be replaced.
+16. **The tracking cron is scheduled in `vercel.json`**, twice a day. Vercel's
+    Hobby plan allows one cron run a day; on Hobby this needs trimming to one.
 12. **`combinable` hidden** in the discount form; checkout takes one code, so it
     would do nothing. Column kept (owner, P4).
 
@@ -368,6 +482,23 @@ positive integer — Razorpay treats a missing amount as "refund everything".
    real orders start somewhere past `AAL1027`). Cosmetic; can be reset before go-live on request.
 6. **Roll the `service_role` key.** It passed through a chat transcript during
    setup. Never committed, but worth rotating before go-live.
+13. **Shiprocket is not configured.** `SHIPROCKET_EMAIL`,
+    `SHIPROCKET_PASSWORD`, `SHIPROCKET_PICKUP_LOCATION`,
+    `SHIPROCKET_PICKUP_PINCODE` and `SHIPROCKET_WEBHOOK_TOKEN` are all unset,
+    so no call in `src/lib/shiprocket.ts` has ever run against their API. What
+    is proven is our side of it. What is not: that the adhoc-order payload is
+    shaped the way their account expects, that the pickup nickname matches, and
+    that their real status strings all land somewhere in the map. The API user
+    must be created under **Settings → API → Configure**; the normal dashboard
+    login does not work for `/auth/login` on current accounts.
+14. **The parcel's real weight and box size are unknown.** The create form is
+    pre-filled from `order_items.weight_grams` (400 g for the seeded book) and a
+    25 × 20 × 4 cm carton that is a guess, not a measurement. Shiprocket bills
+    on volumetric weight, so the owner should confirm both; the form is
+    editable at the moment of shipping either way.
+15. **Nothing tells the buyer a parcel came back.** An RTO marks the order
+    `returned` and shows in the admin, but sends no email — PLAN §6 lists no
+    such message. Worth deciding before volume.
 7. **Shipping rates in `settings` are placeholders** (₹60 flat, free above ₹999).
    Confirm the real numbers before P3.
 8. **The Shopify Admin API credential is dead.** Every page load logs
