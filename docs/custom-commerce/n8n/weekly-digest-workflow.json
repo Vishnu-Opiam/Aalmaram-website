@@ -1,0 +1,221 @@
+{
+  "name": "Aalmaram weekly digest (Flow 5)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "3ae1ce38-7526-257d-feb3-59ff073eb514",
+      "name": "Every Monday 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://aalmaram.com/api/integrations/summary",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "days",
+              "value": "7"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f2706619-a20f-d41b-73f7-858788ac5f47",
+      "name": "Aalmaram: Last 7 Days",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -380,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_AALMARAM_TOKEN_CRED_ID",
+          "name": "Aalmaram store token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.zohoapis.com/books/v3/expenses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "organization_id",
+              "value": "REPLACE_ZOHO_ORG_ID"
+            },
+            {
+              "name": "date_start",
+              "value": "={{ $now.minus({ days: 7 }).toFormat('yyyy-MM-dd') }}"
+            },
+            {
+              "name": "date_end",
+              "value": "={{ $now.toFormat('yyyy-MM-dd') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b7f9619-6140-520f-2ffe-ed34c7852c19",
+      "name": "Zoho: Last 7 Days Expenses",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        300
+      ],
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "REPLACE_ZOHO_CRED_ID",
+          "name": "Zoho Books OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mw8c8iomhkkcz9e/records/count",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "52667447-c508-b1c5-57bc-5ef00215dfd0",
+      "name": "NocoDB: Customer Count",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compile the weekly digest as plain text\nconst store = $('Aalmaram: Last 7 Days').first().json;\nconst orderCount = Number(store.orders || 0);\n// Net of refunds, in rupees.\nconst revenue = Number(store.net_revenue_paise || 0) / 100;\n\nconst zoho = $('Zoho: Last 7 Days Expenses').first().json;\nconst expensesList = zoho.expenses || [];\nconst expenses = expensesList.reduce((s, e) => s + parseFloat(e.total || e.bcy_total || 0), 0);\n\nconst customers = $('NocoDB: Customer Count').first().json.count ?? 'n/a';\n\nconst net = revenue - expenses;\nconst inr = (n) => '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });\nconst weekOf = $now.minus({ days: 7 }).toFormat('d LLL') + ' – ' + $now.toFormat('d LLL yyyy');\n\nconst lowStock = store.low_stock || [];\nconst lowStockNote = lowStock.length\n  ? 'Low stock: ' + lowStock.map((v) => `${v.title} (${v.available})`).join(', ')\n  : '';\n\nconst text = [\n  'AALMARAM — WEEKLY DIGEST',\n  'Week of ' + weekOf,\n  '',\n  'Orders this week:    ' + orderCount,\n  'Revenue this week:   ' + inr(revenue),\n  'Expenses this week:  ' + inr(expenses),\n  'Net position:        ' + inr(net),\n  '',\n  'Total customers to date: ' + customers,\n  lowStockNote,\n  '',\n  '— sent automatically every Monday at 8:00 AM'\n].join('\\n');\n\nreturn [{\n  json: {\n    subject: `Aalmaram weekly digest — ${orderCount} orders, ${inr(revenue)}`,\n    text\n  }\n}];"
+      },
+      "id": "84ae19ce-3b67-1147-0e81-ed07418dca18",
+      "name": "Compile Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  from: 'Aalmaram <letters@aalmaram.com>',\n  to: ['REPLACE_NIVEDITH_EMAIL'],\n  subject: $json.subject,\n  text: $json.text\n}) }}",
+        "options": {}
+      },
+      "id": "be392bda-0e31-fdd2-327e-f10806a506f7",
+      "name": "Resend: Send Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_RESEND_CRED_ID",
+          "name": "Resend API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Monday 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Aalmaram: Last 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aalmaram: Last 7 Days": {
+      "main": [
+        [
+          {
+            "node": "Zoho: Last 7 Days Expenses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho: Last 7 Days Expenses": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Customer Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB: Customer Count": {
+      "main": [
+        [
+          {
+            "node": "Compile Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Digest": {
+      "main": [
+        [
+          {
+            "node": "Resend: Send Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

@@ -15,6 +15,10 @@ import SmoothScroll from "@/components/SmoothScroll";
 import PreOrderModal from "@/components/PreOrderModal";
 import { getFeaturedProduct } from "@/lib/commerce";
 
+// Stock moves with every order and events drop off the day after; admin saves
+// revalidate straight away, and this is the floor for everything else.
+export const revalidate = 300;
+
 export default async function Home() {
   const product = await getFeaturedProduct();
 

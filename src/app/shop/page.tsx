@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   description: "Books and objects from Aalmaram, made slowly in Kerala.",
 };
 
+// Admin saves revalidate at once; stock sold through checkout is picked up within five minutes.
+export const revalidate = 300;
+
 export default async function ShopPage() {
   const products = await listActiveProducts();
 

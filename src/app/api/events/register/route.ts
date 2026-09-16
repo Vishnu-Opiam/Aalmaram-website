@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listEvents } from "@/lib/events";
+import { getPublishedEvent, todayInIndia } from "@/lib/events";
 
 /**
  * POST /api/events/register
@@ -37,10 +37,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Please enter your name" }, { status: 400 });
   }
 
-  const events = await listEvents();
-  const event = events.find((e) => e.id === eventId);
+  const event = await getPublishedEvent(eventId);
   if (!event) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+  if (event.date < todayInIndia()) {
+    return NextResponse.json({ error: "Registration for this event has closed" }, { status: 410 });
   }
 
   const webhookUrl = process.env.N8N_EVENT_WEBHOOK_URL;

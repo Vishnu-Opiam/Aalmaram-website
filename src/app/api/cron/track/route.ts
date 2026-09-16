@@ -1,5 +1,5 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { isCronAuthorised } from "@/lib/cron";
 import { refreshShipment } from "@/lib/shipping";
 import { isShiprocketConfigured } from "@/lib/shiprocket";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -23,24 +23,8 @@ const BATCH = 20;
 
 const SETTLED = ["delivered", "rto_delivered", "lost", "cancelled"];
 
-function authorised(request: Request): boolean {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) {
-    console.error("CRON_SECRET is not set — refusing every cron request.");
-    return false;
-  }
-
-  const header = request.headers.get("authorization") ?? "";
-  const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
-  const provided = bearer || new URL(request.url).searchParams.get("secret") || "";
-
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
 export async function GET(request: Request) {
-  if (!authorised(request)) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 

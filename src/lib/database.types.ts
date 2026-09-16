@@ -930,7 +930,9 @@ export type Database = {
           attempts: number
           created_at: string
           id: string
+          last_attempt_at: string | null
           last_error: string | null
+          last_response_status: number | null
           next_attempt_at: string
           payload: Json
           sent_at: string | null
@@ -941,7 +943,9 @@ export type Database = {
           attempts?: number
           created_at?: string
           id?: string
+          last_attempt_at?: string | null
           last_error?: string | null
+          last_response_status?: number | null
           next_attempt_at?: string
           payload: Json
           sent_at?: string | null
@@ -952,7 +956,9 @@ export type Database = {
           attempts?: number
           created_at?: string
           id?: string
+          last_attempt_at?: string | null
           last_error?: string | null
+          last_response_status?: number | null
           next_attempt_at?: string
           payload?: Json
           sent_at?: string | null
@@ -1013,6 +1019,28 @@ export type Database = {
         Args: { p_actor?: string; p_reason?: string; p_shipment_id: string }
         Returns: Json
       }
+      claim_outbox: {
+        Args: { p_lease_seconds?: number; p_limit?: number; p_topics: string[] }
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          last_response_status: number | null
+          next_attempt_at: string
+          payload: Json
+          sent_at: string | null
+          status: string
+          topic: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "webhook_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       complete_refund: {
         Args: {
           p_actor?: string
@@ -1045,6 +1073,16 @@ export type Database = {
         Args: { p_actor?: string; p_error: string; p_refund_id: string }
         Returns: undefined
       }
+      finish_outbox: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_max_attempts?: number
+          p_outcome: string
+          p_response_status?: number
+        }
+        Returns: string
+      }
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
@@ -1067,10 +1105,15 @@ export type Database = {
         }
         Returns: Json
       }
+      retry_outbox: {
+        Args: { p_actor: string; p_id: string }
+        Returns: undefined
+      }
       set_shiprocket_token: {
         Args: { p_expires_at: string; p_token: string }
         Returns: undefined
       }
+      store_analytics: { Args: { p_days?: number }; Returns: Json }
       update_shipment_status: {
         Args: {
           p_actor?: string

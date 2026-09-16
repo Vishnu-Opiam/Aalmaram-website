@@ -1,0 +1,367 @@
+{
+  "name": "Aalmaram order.delivered → post-purchase emails (Flow 3)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aalmaram-order-delivered",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "ecd46ee8-74f4-6d95-0fee-cec87e1a24e7",
+      "name": "Aalmaram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        300
+      ],
+      "webhookId": "aalmaram-order-delivered",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_AALMARAM_TOKEN_CRED_ID",
+          "name": "Aalmaram store token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract order details and pre-build both emails\nconst order = $input.first().json.body ?? $input.first().json;\nconst c = order.customer || {};\n\nconst email = (order.email || c.email || '').toLowerCase();\nconst firstName = c.first_name || (order.shipping_address && order.shipping_address.first_name) || 'there';\nconst lineItems = order.line_items || [];\nconst bookTitle = lineItems[0] ? lineItems[0].title : 'your book';\nconst orderRef = order.order_number || order.name || order.id || '';\n\nconst UNSUB = 'https://n8n.opiamanalytics.com/webhook/a42a06d0-14c2-4871-adbe-59b7582306a0?email=' + encodeURIComponent(email);\nconst REVIEW_LINK = 'https://aalmaram.com'; // REPLACE with the actual review link\n\nfunction shell(body) {\n  return `<!DOCTYPE html><html><body style=\"margin:0;padding:0;background-color:#f8f5f0;\">` +\n    `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f8f5f0;\"><tr><td align=\"center\" style=\"padding:32px 16px;\">` +\n    `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px;width:100%;\">` +\n    `<tr><td style=\"padding:40px 8px 24px;text-align:center;\">` +\n    `<div style=\"font-family:'Playfair Display',Georgia,serif;font-size:22px;letter-spacing:.18em;color:#232f48;\">AALMARAM</div>` +\n    `<div style=\"width:48px;height:2px;background:#c6a15b;margin:16px auto 0;font-size:0;\">&nbsp;</div>` +\n    `</td></tr>` +\n    `<tr><td style=\"font-family:'Nunito',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.7;color:#232f48;padding:8px;\">${body}</td></tr>` +\n    `<tr><td style=\"padding:32px 8px;text-align:center;font-family:'Nunito',Helvetica,Arial,sans-serif;font-size:12px;color:#8a8577;\">` +\n    `Aalmaram Publishing &middot; Kochi, Kerala<br><a href=\"${UNSUB}\" style=\"color:#8a8577;\">Unsubscribe</a>` +\n    `</td></tr></table></td></tr></table></body></html>`;\n}\n\nconst checkinBody =\n  `<p>Hello ${firstName},</p>` +\n  `<p>It has been a few days since <em>${bookTitle}</em> reached you, and I wanted to ask &mdash; how are you finding it?</p>` +\n  `<p>Every copy that leaves Kochi carries a little of Kerala's history with it. I hope it has found a good home on your shelf, and better still, in someone's hands at bedtime.</p>` +\n  `<p>If anything about your copy isn't right, just reply to this email and I'll sort it personally.</p>` +\n  `<p>Warmly,<br>Nivedith<br><span style=\"color:#c6a15b;\">Aalmaram Publishing</span></p>`;\n\nconst reviewBody =\n  `<p>Hello ${firstName},</p>` +\n  `<p>A small favour. If <em>${bookTitle}</em> has earned a place in your home, a short review helps other families find it.</p>` +\n  `<p style=\"margin:28px 0;text-align:center;\"><a href=\"${REVIEW_LINK}\" style=\"display:inline-block;padding:12px 28px;background:#c6a15b;color:#ffffff;text-decoration:none;font-family:'Nunito',Helvetica,Arial,sans-serif;letter-spacing:.08em;\">LEAVE A REVIEW</a></p>` +\n  `<p>It takes a minute, and it matters more than you'd think to a small press.</p>` +\n  `<p>Thank you,<br>Nivedith</p>`;\n\nreturn [{\n  json: {\n    email,\n    first_name: firstName,\n    book_title: bookTitle,\n    order_ref: String(orderRef),\n    checkin_subject: `How are you finding ${bookTitle}?`,\n    checkin_html: shell(checkinBody),\n    review_subject: 'A small favour',\n    review_html: shell(reviewBody)\n  }\n}];"
+      },
+      "id": "6412dd65-f511-aeaf-8b5f-5a824bb29291",
+      "name": "Extract Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "id": "990f823c-2bb3-7a2c-3618-24475f699258",
+      "name": "Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        300
+      ],
+      "webhookId": "flow3-wait-3-days"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  from: 'Aalmaram <letters@aalmaram.com>',\n  to: [$('Extract Order').item.json.email],\n  subject: $('Extract Order').item.json.checkin_subject,\n  html: $('Extract Order').item.json.checkin_html\n}) }}",
+        "options": {}
+      },
+      "id": "be0a8afb-e68c-0747-32b5-6cd4de5466d0",
+      "name": "Resend: Check-In Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_RESEND_CRED_ID",
+          "name": "Resend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "id": "8b5353d3-4829-3348-a16b-1e8a468ee062",
+      "name": "Wait 7 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        300
+      ],
+      "webhookId": "flow3-wait-7-days"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  from: 'Aalmaram <letters@aalmaram.com>',\n  to: [$('Extract Order').item.json.email],\n  subject: $('Extract Order').item.json.review_subject,\n  html: $('Extract Order').item.json.review_html\n}) }}",
+        "options": {}
+      },
+      "id": "bf2bd9be-5dac-5272-4371-d00097f17dce",
+      "name": "Resend: Review Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_RESEND_CRED_ID",
+          "name": "Resend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mm1ywz09ysrzaug/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(email,eq,{{ $('Extract Order').item.json.email }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2034dcaf-b377-8fa2-8f10-c8e0a0be67c5",
+      "name": "NocoDB: Find Person",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-person-found",
+              "leftValue": "={{ ($json.list || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3e6a5bda-6dce-99a1-6ac3-6b748d2d2417",
+      "name": "Person in CRM?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mgwji0lcc42nrnq/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  int_id: 'PP-CHK-' + $('Extract Order').item.json.order_ref,\n  int_type: 'Email Sent',\n  summary: 'Sent: post-purchase check-in — Order #' + $('Extract Order').item.json.order_ref,\n  date: $now.minus({ days: 7 }).toFormat('yyyy-MM-dd'),\n  nc_yds0___People_id: $('NocoDB: Find Person').item.json.list[0].Id\n}) }}",
+        "options": {}
+      },
+      "id": "df079842-d3a1-d1e2-7729-4c9d3357250d",
+      "name": "NocoDB: Log Check-In",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mgwji0lcc42nrnq/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  int_id: 'PP-REV-' + $('Extract Order').item.json.order_ref,\n  int_type: 'Email Sent',\n  summary: 'Sent: review request — Order #' + $('Extract Order').item.json.order_ref,\n  date: $now.toFormat('yyyy-MM-dd'),\n  nc_yds0___People_id: $('NocoDB: Find Person').item.json.list[0].Id\n}) }}",
+        "options": {}
+      },
+      "id": "266500be-ffef-8077-eea6-a0b37ea728d8",
+      "name": "NocoDB: Log Review Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "0800d4ed-f323-f1af-aa93-87b5bd88e4b7",
+      "name": "Skip (no matching Person)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Aalmaram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Order": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 Days": {
+      "main": [
+        [
+          {
+            "node": "Resend: Check-In Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resend: Check-In Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 7 Days": {
+      "main": [
+        [
+          {
+            "node": "Resend: Review Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resend: Review Email": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Find Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB: Find Person": {
+      "main": [
+        [
+          {
+            "node": "Person in CRM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Person in CRM?": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Log Check-In",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip (no matching Person)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB: Log Check-In": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Log Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

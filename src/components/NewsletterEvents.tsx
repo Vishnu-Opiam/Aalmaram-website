@@ -1,4 +1,4 @@
-import { listEvents, type EventRecord } from "@/lib/events";
+import { listUpcomingEvents, type EventRecord } from "@/lib/events";
 import NewsletterForm from "./NewsletterForm";
 import EventRegisterForm from "./EventRegisterForm";
 
@@ -17,20 +17,12 @@ function formatYear(iso: string): string {
 }
 
 async function getUpcomingEvents(): Promise<EventRecord[]> {
-  let events: EventRecord[] = [];
   try {
-    events = await listEvents();
-  } catch {
-    events = [];
+    return await listUpcomingEvents();
+  } catch (err) {
+    console.error(err);
+    return [];
   }
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return events
-    .filter((e) => {
-      const d = new Date(e.date + "T00:00:00");
-      return !isNaN(d.getTime()) && d.getTime() >= today.getTime();
-    })
-    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export default async function NewsletterEvents() {

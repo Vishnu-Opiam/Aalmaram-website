@@ -1,0 +1,744 @@
+{
+  "name": "Aalmaram order.paid → Zoho invoice, NocoDB contact + interaction, newsletter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aalmaram-order-paid",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "96d245fb-51e2-89d7-97ec-5c6a61dee04b",
+      "name": "Aalmaram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        300
+      ],
+      "webhookId": "aalmaram-order-paid",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_AALMARAM_TOKEN_CRED_ID",
+          "name": "Aalmaram store token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node 2: Data Parser & Cleaner\n// Shopify Trigger may deliver the order directly as json, or under .body for raw webhooks.\nconst order = $input.first().json.body ?? $input.first().json;\n\nconst customer = order.customer || {};\nconst billing = order.billing_address || {};\nconst shipping = (order.shipping_lines && order.shipping_lines[0]) || {};\n\n// Clean the line items down to what accounting needs\nconst lineItems = (order.line_items || []).map((li) => ({\n  name: li.title + (li.variant_title ? ' - ' + li.variant_title : ''),\n  sku: li.sku || '',\n  quantity: Number(li.quantity) || 0,\n  rate: parseFloat(li.price) || 0\n}));\n\nreturn [\n  {\n    json: {\n      email: order.email || customer.email || '',\n      first_name: customer.first_name || billing.first_name || '',\n      last_name: customer.last_name || billing.last_name || '',\n      phone: customer.phone || billing.phone || '',\n      line_items: lineItems,\n      total_tax: parseFloat(order.total_tax || 0),\n      shipping_cost: parseFloat(shipping.price || 0),\n      total_price: parseFloat(order.total_price || 0),\n      order_number: order.order_number || order.name || '',\n      currency: order.currency || 'INR'\n    }\n  }\n];"
+      },
+      "id": "56311c40-673c-dcd3-49ee-de1f82e55688",
+      "name": "Parse Order Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.zohoapis.com/books/v3/contacts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "organization_id",
+              "value": "={{ $vars.ZOHO_ORG_ID }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fa27cdf2-0dd3-4d8f-c34c-121695aaa72d",
+      "name": "Zoho: Check Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        -220
+      ],
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "REPLACE_ZOHO_CRED_ID",
+          "name": "Zoho Books account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-exists",
+              "leftValue": "={{ ($json.contacts || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "771a9ccb-3744-0c2f-4375-d9bbc8b591aa",
+      "name": "Customer Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        360,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-existing-id",
+              "name": "contact_id",
+              "value": "={{ $json.contacts[0].contact_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a4972a56-2262-dddf-57d2-19e02dbcb532",
+      "name": "Use Existing Contact ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        580,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.zohoapis.com/books/v3/contacts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "organization_id",
+              "value": "={{ $vars.ZOHO_ORG_ID }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  contact_name: ($('Parse Order Data').item.json.first_name + ' ' + $('Parse Order Data').item.json.last_name).trim() || $('Parse Order Data').item.json.email,\n  contact_type: 'customer',\n  contact_persons: [\n    {\n      first_name: $('Parse Order Data').item.json.first_name,\n      last_name: $('Parse Order Data').item.json.last_name,\n      email: $('Parse Order Data').item.json.email,\n      phone: $('Parse Order Data').item.json.phone,\n      is_primary_contact: true\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "id": "4ae5ca77-281f-53f2-0a98-cd0cbb545d51",
+      "name": "Zoho: Create Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        -100
+      ],
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "REPLACE_ZOHO_CRED_ID",
+          "name": "Zoho Books account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-new-id",
+              "name": "contact_id",
+              "value": "={{ $json.contact.contact_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4872f716-0646-249e-01e9-41b0e02e5b9c",
+      "name": "Use New Contact ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.zohoapis.com/books/v3/invoices",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "organization_id",
+              "value": "={{ $vars.ZOHO_ORG_ID }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  customer_id: $json.contact_id,\n  reference_number: $('Parse Order Data').item.json.order_number,\n  line_items: $('Parse Order Data').item.json.line_items.map(li => ({\n    name: li.name,\n    sku: li.sku,\n    rate: li.rate,\n    quantity: li.quantity\n  })),\n  shipping_charge: $('Parse Order Data').item.json.shipping_cost\n}) }}",
+        "options": {}
+      },
+      "id": "c3dab219-0429-4295-9890-b19eb863add7",
+      "name": "Zoho: Create Invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        -220
+      ],
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "REPLACE_ZOHO_CRED_ID",
+          "name": "Zoho Books account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 5: extract name, email, phone, city, order value, customer id from Shopify payload\nconst order = $input.first().json.body ?? $input.first().json;\nconst c = order.customer || {};\nconst ship = order.shipping_address || order.billing_address || {};\n\nconst email = order.email || c.email || '';\nconst customerId = c.id ? String(c.id) : '';\nconst orderDate = (order.created_at || new Date().toISOString()).substring(0, 10); // YYYY-MM-DD for NocoDB Date\n\n// Match on the stable Shopify customer id when present, otherwise fall back to email\nconst matchWhere = customerId\n  ? `(shopify_customer_id,eq,${customerId})`\n  : `(email,eq,${email})`;\n\nreturn [\n  {\n    json: {\n      name: ((c.first_name || '') + ' ' + (c.last_name || '')).trim() || email,\n      email,\n      phone: c.phone || ship.phone || order.phone || '',\n      city: ship.city || '',\n      shopify_customer_id: customerId,\n      order_value: parseFloat(order.total_price || 0),\n      order_date: orderDate,\n      match_where: matchWhere\n    }\n  }\n];"
+      },
+      "id": "e4a24ab3-fa92-7766-bc24-928d4236015f",
+      "name": "Extract Customer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mw8c8iomhkkcz9e/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "={{ $json.match_where }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "144e28c9-792d-b212-123c-7e4f73c5990a",
+      "name": "NocoDB: Find Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        260
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-exists",
+              "leftValue": "={{ ($json.list || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f410122c-0380-e9a2-01aa-f3406a725502",
+      "name": "Contact Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        300,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mw8c8iomhkkcz9e/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  Id: $('NocoDB: Find Contact').item.json.list[0].Id,\n  total_orders: (Number($('NocoDB: Find Contact').item.json.list[0].total_orders) || 0) + 1,\n  total_spend: (Number($('NocoDB: Find Contact').item.json.list[0].total_spend) || 0) + $('Extract Customer').item.json.order_value,\n  last_order_date: $('Extract Customer').item.json.order_date\n}) }}",
+        "options": {}
+      },
+      "id": "ff8c9b14-5a84-2dbe-3546-9d9c51ce2699",
+      "name": "NocoDB: Update Totals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        540,
+        140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mw8c8iomhkkcz9e/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  name: $('Extract Customer').item.json.name,\n  email: $('Extract Customer').item.json.email,\n  phone: $('Extract Customer').item.json.phone,\n  city: $('Extract Customer').item.json.city,\n  source: 'Website',\n  shopify_customer_id: $('Extract Customer').item.json.shopify_customer_id,\n  first_order_date: $('Extract Customer').item.json.order_date,\n  last_order_date: $('Extract Customer').item.json.order_date,\n  total_orders: 1,\n  total_spend: $('Extract Customer').item.json.order_value\n}) }}",
+        "options": {}
+      },
+      "id": "a5f74809-3b29-bd9e-4f4b-e778a9a7e695",
+      "name": "NocoDB: Create Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        540,
+        380
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the Purchase interaction payload from a Shopify order\nconst order = $input.first().json.body ?? $input.first().json;\nconst c = order.customer || {};\n\nconst email = order.email || c.email || '';\nconst lineItems = order.line_items || [];\n\n// Total quantity across all line items\nconst quantity = lineItems.reduce((sum, li) => sum + (Number(li.quantity) || 0), 0);\n\n// Human-readable summary: \"Bought 2 × Title A, 1 × Title B — Order #1234\"\nconst itemSummary = lineItems\n  .map(li => `${li.quantity} × ${li.title}${li.variant_title ? ' (' + li.variant_title + ')' : ''}`)\n  .join(', ');\n\nconst orderRef = order.order_number || order.name || order.id || '';\nconst summary = `Bought ${itemSummary}${orderRef ? ' — Order #' + orderRef : ''}`;\n\nreturn [\n  {\n    json: {\n      email,\n      int_id: `WEB-${orderRef || order.id || Date.now()}`,\n      int_type: 'Purchase',\n      summary,\n      quantity,\n      amount: parseFloat(order.total_price || 0),\n      date: (order.created_at || new Date().toISOString()).substring(0, 10)\n    }\n  }\n];"
+      },
+      "id": "24465823-364b-f853-43cb-348ad5ba37ad",
+      "name": "Build Purchase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mm1ywz09ysrzaug/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(email,eq,{{ $json.email }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5804738a-39be-7b24-3c67-3638020e988e",
+      "name": "NocoDB: Find Person",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        720
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-person-found",
+              "leftValue": "={{ ($json.list || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "14d72f27-fe1d-72c2-e789-e528569e2e39",
+      "name": "Person in CRM?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        280,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://noco.opiamanalytics.com/api/v2/tables/mgwji0lcc42nrnq/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  int_id: $('Build Purchase').item.json.int_id,\n  int_type: 'Purchase',\n  summary: $('Build Purchase').item.json.summary,\n  date: $('Build Purchase').item.json.date,\n  quantity: $('Build Purchase').item.json.quantity,\n  amount: $('Build Purchase').item.json.amount,\n  nc_yds0___People_id: $('NocoDB: Find Person').item.json.list[0].Id\n}) }}",
+        "options": {}
+      },
+      "id": "dccdd190-9bea-b347-d456-d3613f14188e",
+      "name": "NocoDB: Create Interaction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        620
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_NOCODB_CRED_ID",
+          "name": "NocoDB xc-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 0,
+        "unit": "seconds"
+      },
+      "id": "4c18b415-5ee6-f47a-9944-396dc7fe0258",
+      "name": "Skip (no matching Person)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        840
+      ],
+      "webhookId": "skip-no-person"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-opted-in",
+              "leftValue": "={{ (($json.body ?? $json).data || {}).accepts_marketing === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6cc136a1-161d-d920-445c-0f726bb99e92",
+      "name": "Ticked the newsletter box?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.opiamanalytics.com/webhook/newsletter-signup",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  email: ($('Aalmaram Webhook').item.json.body ?? $('Aalmaram Webhook').item.json).email,\n  name: [(($('Aalmaram Webhook').item.json.body ?? $('Aalmaram Webhook').item.json).customer || {}).first_name, (($('Aalmaram Webhook').item.json.body ?? $('Aalmaram Webhook').item.json).customer || {}).last_name].filter(Boolean).join(' ')\n}) }}",
+        "options": {}
+      },
+      "id": "d4d74db3-1b04-b42f-508a-35d091247cc5",
+      "name": "Newsletter: Subscribe Buyer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        820
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5ef1479f-6545-5489-9043-6dd72cd51180",
+      "name": "No Opt-In — Skip",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        100,
+        980
+      ]
+    }
+  ],
+  "connections": {
+    "Aalmaram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Order Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Customer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Purchase",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ticked the newsletter box?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Order Data": {
+      "main": [
+        [
+          {
+            "node": "Zoho: Check Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho: Check Customer": {
+      "main": [
+        [
+          {
+            "node": "Customer Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Exists?": {
+      "main": [
+        [
+          {
+            "node": "Use Existing Contact ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zoho: Create Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Existing Contact ID": {
+      "main": [
+        [
+          {
+            "node": "Zoho: Create Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho: Create Contact": {
+      "main": [
+        [
+          {
+            "node": "Use New Contact ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use New Contact ID": {
+      "main": [
+        [
+          {
+            "node": "Zoho: Create Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Customer": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Find Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB: Find Contact": {
+      "main": [
+        [
+          {
+            "node": "Contact Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Exists?": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Update Totals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB: Create Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Purchase": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Find Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB: Find Person": {
+      "main": [
+        [
+          {
+            "node": "Person in CRM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Person in CRM?": {
+      "main": [
+        [
+          {
+            "node": "NocoDB: Create Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip (no matching Person)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ticked the newsletter box?": {
+      "main": [
+        [
+          {
+            "node": "Newsletter: Subscribe Buyer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Opt-In — Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

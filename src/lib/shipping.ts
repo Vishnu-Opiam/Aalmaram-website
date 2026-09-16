@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sendShippingConfirmation } from "@/lib/email";
+import { kickOutbox } from "@/lib/outbox";
 import {
   assignAwb,
   cancelAdhocOrder,
@@ -295,6 +296,7 @@ export async function assignAwbForShipment(params: {
   }
 
   const result = data as { notify_shipped?: boolean };
+  if (result.notify_shipped) kickOutbox();
   const emailed = result.notify_shipped ? await notifyShipped(shipment.order_id) : false;
 
   return { ok: true, awbCode: awb.awbCode, courierName: awb.courierName, emailed };
@@ -382,6 +384,8 @@ export async function applyShipmentStatus(
     notify?: string | null;
     order_id?: string;
   };
+
+  if (result.applied) kickOutbox();
 
   const emailed =
     result.applied && result.notify === "shipped" && result.order_id

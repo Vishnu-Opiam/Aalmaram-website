@@ -198,6 +198,8 @@ try {
   await db.from("checkouts").delete().eq("email", email);
   await db.from("customers").delete().eq("email", email);
   await db.from("audit_log").delete().in("entity_id", (checkouts ?? []).map((c) => c.id));
+  // Stock crossing the low-stock threshold queues inventory.low (P6).
+  await db.from("webhook_outbox").delete().eq("topic", "inventory.low").eq("payload->>product_id", product.id);
   await db.from("products").delete().eq("id", product.id);
   console.log("\ncleaned up fixtures");
 }

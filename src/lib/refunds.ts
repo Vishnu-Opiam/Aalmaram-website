@@ -1,5 +1,6 @@
 import "server-only";
 
+import { kickOutbox } from "@/lib/outbox";
 import { createRefund, fetchRefunds, type RazorpayRefund } from "@/lib/razorpay";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -117,6 +118,8 @@ export async function issueRefund(refundId: string, actor: string): Promise<Issu
       pending: true,
     };
   }
+
+  kickOutbox();
 
   const result = (data ?? {}) as {
     already_processed?: boolean;

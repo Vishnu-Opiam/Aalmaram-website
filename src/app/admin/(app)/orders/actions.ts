@@ -5,6 +5,7 @@ import { z } from "zod";
 import { recordAudit, requireAdmin } from "@/lib/admin-auth";
 import { formatPaise, humaniseDbError, rupeesToPaise } from "@/lib/format";
 import { refundOutOfStock, resendConfirmation } from "@/lib/orders";
+import { kickOutbox } from "@/lib/outbox";
 import { issueRefund, type SkippedLine } from "@/lib/refunds";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -143,6 +144,7 @@ export async function cancelOrder(_prev: ActionState, formData: FormData): Promi
     });
     refreshOrder(orderId);
     if (error) return { error: dbError(error, "Could not cancel") };
+    kickOutbox();
     return { error: "", ok: "Order cancelled. Nothing was left to refund." };
   }
 

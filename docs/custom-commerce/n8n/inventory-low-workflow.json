@@ -1,0 +1,97 @@
+{
+  "name": "Aalmaram inventory.low → stock alert (Flow 6)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aalmaram-inventory-low",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "9521047f-cb41-6523-8686-2a6d9c6a7a7e",
+      "name": "Aalmaram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        300
+      ],
+      "webhookId": "aalmaram-inventory-low",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_AALMARAM_TOKEN_CRED_ID",
+          "name": "Aalmaram store token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the low-stock alert email from the store's inventory.low event.\n// The store decides the threshold (Settings → Inventory) and fires once per crossing.\nconst p = $input.first().json.body ?? $input.first().json;\nconst d = p.data || {};\nconst available = Number(p.current_available ?? d.available);\nconst threshold = Number(d.threshold ?? 5);\nconst title = (d.product_title || 'A product') + (d.variant_title && d.variant_title !== 'Default' ? ' — ' + d.variant_title : '');\n\nconst reorder = available <= 0\n  ? 'OUT OF STOCK — reorder immediately.'\n  : `Suggest reordering soon. At current pace this is roughly ${available} sales from selling out.`;\n\nconst html =\n  `<!DOCTYPE html><html><body style=\"margin:0;padding:0;background-color:#f8f5f0;\">` +\n  `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f8f5f0;\"><tr><td align=\"center\" style=\"padding:32px 16px;\">` +\n  `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px;width:100%;\">` +\n  `<tr><td style=\"padding:40px 8px 24px;text-align:center;\">` +\n  `<div style=\"font-family:'Playfair Display',Georgia,serif;font-size:22px;letter-spacing:.18em;color:#232f48;\">AALMARAM</div>` +\n  `<div style=\"width:48px;height:2px;background:#a4422c;margin:16px auto 0;font-size:0;\">&nbsp;</div>` +\n  `</td></tr>` +\n  `<tr><td style=\"font-family:'Nunito',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.7;color:#232f48;padding:8px;\">` +\n  `<p style=\"font-size:13px;letter-spacing:.2em;color:#a4422c;\">LOW INVENTORY ALERT</p>` +\n  `<p><strong>${title}</strong></p>` +\n  `<p>Current stock: <strong>${available}</strong> (threshold: ${threshold})</p>` +\n  `<p>${reorder}</p>` +\n  `</td></tr></table></td></tr></table></body></html>`;\n\nreturn [{\n  json: {\n    subject: `Low stock: ${title} — ${available} left`,\n    html\n  }\n}];"
+      },
+      "id": "e5c7a3c8-3398-9bbc-7fdd-f1815aa509bc",
+      "name": "Build Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  from: 'Aalmaram <letters@aalmaram.com>',\n  to: ['REPLACE_NIVEDITH_EMAIL'],\n  subject: $json.subject,\n  html: $json.html\n}) }}",
+        "options": {}
+      },
+      "id": "a298450b-149a-c409-865c-3e199c7bd3b3",
+      "name": "Resend: Alert Nivedith",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_RESEND_CRED_ID",
+          "name": "Resend API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Aalmaram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert": {
+      "main": [
+        [
+          {
+            "node": "Resend: Alert Nivedith",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

@@ -1,83 +1,56 @@
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import "server-only";
 
-/* ────────────────────────────────────────────────────────────
-   Events — backed by a local JSON file (no Shopify dependency)
-   ──────────────────────────────────────────────────────────── */
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
+import { supabaseAnonKey, supabaseUrl } from "@/lib/env";
+
+/**
+ * Author events — book launches, fairs, readings — as the storefront sees them.
+ *
+ * Read with the anon key and no session, so the `events_public_read` policy
+ * decides: an unpublished event is invisible here however it is asked for.
+ * Writes happen only in the admin, through the service-role client.
+ */
 
 export interface EventRecord {
   id: string;
   title: string;
-  date: string; // ISO date (YYYY-MM-DD)
+  /** YYYY-MM-DD, the day of the event in India. */
+  date: string;
   location: string;
   description: string;
   link: string;
 }
 
-export type EventInput = Omit<EventRecord, "id">;
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "events.json");
-
-/** Ensure the data directory and file exist. */
-function ensureFile(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, "[]", "utf-8");
-  }
+function publicClient() {
+  return createClient<Database>(supabaseUrl(), supabaseAnonKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
-/** Read all events from disk. */
-function readAll(): EventRecord[] {
-  ensureFile();
-  try {
-    const raw = fs.readFileSync(DATA_FILE, "utf-8");
-    return JSON.parse(raw) as EventRecord[];
-  } catch {
-    return [];
-  }
+/** Today's date in India, as YYYY-MM-DD. */
+export function todayInIndia(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 }
 
-/** Write all events to disk. */
-function writeAll(events: EventRecord[]): void {
-  ensureFile();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(events, null, 2), "utf-8");
+/** Published events from today onwards, soonest first. */
+export async function listUpcomingEvents(): Promise<EventRecord[]> {
+  const { data, error } = await publicClient()
+    .from("events")
+    .select("id, title, date, location, description, link")
+    .gte("date", todayInIndia())
+    .order("date", { ascending: true });
+  if (error) throw new Error(`Could not load events: ${error.message}`);
+  return data ?? [];
 }
 
-/** List all events. */
-export async function listEvents(): Promise<EventRecord[]> {
-  return readAll();
-}
-
-/** Create a new event. */
-export async function createEvent(input: EventInput): Promise<EventRecord> {
-  const events = readAll();
-  const event: EventRecord = {
-    id: crypto.randomUUID(),
-    ...input,
-  };
-  events.push(event);
-  writeAll(events);
-  return event;
-}
-
-/** Update an existing event by ID. */
-export async function updateEvent(id: string, input: EventInput): Promise<EventRecord> {
-  const events = readAll();
-  const idx = events.findIndex((e) => e.id === id);
-  if (idx === -1) throw new Error(`Event not found: ${id}`);
-  events[idx] = { id, ...input };
-  writeAll(events);
-  return events[idx];
-}
-
-/** Delete an event by ID. */
-export async function deleteEvent(id: string): Promise<void> {
-  const events = readAll();
-  const filtered = events.filter((e) => e.id !== id);
-  if (filtered.length === events.length) throw new Error(`Event not found: ${id}`);
-  writeAll(filtered);
+/** One published event, or null. Past events are included — registration decides for itself. */
+export async function getPublishedEvent(id: string): Promise<EventRecord | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { data } = await publicClient()
+    .from("events")
+    .select("id, title, date, location, description, link")
+    .eq("id", id)
+    .maybeSingle();
+  return data ?? null;
 }

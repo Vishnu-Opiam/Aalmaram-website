@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sendOrderConfirmation, sendOutOfStockRefund } from "@/lib/email";
+import { kickOutbox } from "@/lib/outbox";
 import { issueRefund, type IssueRefundResult } from "@/lib/refunds";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -69,6 +70,7 @@ export async function finaliseOrder(params: {
   if (error) throw new Error(error.message);
 
   const result = data as { order_id: string; order_number: string; already_existed: boolean };
+  if (!result.already_existed) kickOutbox();
 
   // Only the caller that actually created the order sends the receipt, so a
   // webhook arriving after the browser callback does not send a second one.

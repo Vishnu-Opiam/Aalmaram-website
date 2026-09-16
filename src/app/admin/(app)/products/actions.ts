@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { recordAudit, requireAdmin } from "@/lib/admin-auth";
+import { kickOutbox } from "@/lib/outbox";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface ActionState {
@@ -405,6 +406,8 @@ export async function adjustInventory(
     }
     return { error: `Could not adjust stock: ${adjustError.message}` };
   }
+  // A sale-down past the threshold queues inventory.low.
+  kickOutbox();
 
   const { data: variant } = await db
     .from("product_variants")
