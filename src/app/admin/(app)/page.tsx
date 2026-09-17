@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { formatDateTime, formatPaise } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FinishRefundButton } from "./orders/OrderPanels";
-import { FulfilmentPill, PageTitle, PaymentPill, Pill, SectionTitle } from "./ui";
+import { FulfilmentPill, Notice, PageTitle, PaymentPill, Pill, SectionTitle } from "./ui";
 
 export const metadata = { title: "Admin - Aalmaram" };
 
@@ -18,8 +18,9 @@ interface PeriodSummary {
  * "Today" and "this week" are bucketed in Postgres in Indian time (see
  * admin_sales_summary). The full analytics arrive in phase 7.
  */
-export default async function AdminHomePage() {
+export default async function AdminHomePage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   await requireAdmin();
+  const { denied } = await searchParams;
   const db = createAdminClient();
 
   const [
@@ -71,6 +72,11 @@ export default async function AdminHomePage() {
   return (
     <div>
       <PageTitle>Today</PageTitle>
+      {denied === "owner" && (
+        <div className="mt-6">
+          <Notice error="Settings and the team are for owners. Ask an owner if something there needs changing." />
+        </div>
+      )}
 
       {/* ── Figures ──────────────────────────────────────────── */}
       <section className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -128,8 +134,12 @@ export default async function AdminHomePage() {
             ))}
             {(failedOutbox ?? 0) > 0 && (
               <li className="text-[13px] font-body font-light">
-                <strong className="font-normal">{failedOutbox} message(s) to n8n failed</strong> and will need a look once
-                delivery is switched on in phase 6.
+                <strong className="font-normal">{failedOutbox} event(s) could not be delivered to n8n</strong> after ten
+                tries.{" "}
+                <Link href="/admin/settings/integrations?status=failed" className="qlink">
+                  See why and retry
+                </Link>
+                .
               </li>
             )}
           </ul>

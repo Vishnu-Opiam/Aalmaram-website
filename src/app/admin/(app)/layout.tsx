@@ -12,7 +12,11 @@ const NAV = [
   { href: "/admin/discounts", label: "Discounts" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/events", label: "Events" },
+  { href: "/admin/analytics", label: "Analytics" },
 ];
+
+/** Only owners can open these, so only owners see the link. */
+const OWNER_NAV = [{ href: "/admin/settings", label: "Settings" }];
 
 /**
  * Everything in this route group is admin-only. The proxy does an optimistic
@@ -37,7 +41,7 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
           </Link>
 
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {NAV.map((item) => (
+            {[...NAV, ...(session.role === "owner" ? OWNER_NAV : [])].map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

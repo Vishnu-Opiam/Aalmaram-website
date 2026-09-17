@@ -13,7 +13,7 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
 - [x] **P4 Orders admin + discounts** — plus customers and a real `/admin` home
 - [x] **P5 Shipping** — Shiprocket client, shipment RPCs, admin panels, webhook, tracking cron
 - [x] **P6 Events feed + n8n** — outbox drain + cron, events in Supabase, n8n workflows rebuilt, low-stock event
-- [ ] P7 Analytics + settings
+- [x] **P7 Analytics + settings** — analytics + chart, store/shipping/integrations/team settings, invites, abandoned-checkout email
 - [ ] P8 Migration + cutover
 
 ---
@@ -458,6 +458,86 @@ turns into a double-sent invoice under load.
 
 ---
 
+## P7 — what landed
+
+**Migration** `…20260914090000_p7_settings_team`: the `integrations` settings
+row and the `abandoned_checkout_email` flag; `merge_setting` (an allowlisted,
+atomic, audited merge — the Shiprocket row accepts only `pickup_location`, so
+the cached token can't be touched); `admin_users.invited_at/invited_by`;
+`set_admin_role` and `remove_admin_user`, which lock every owner row and refuse
+to leave the store without one; `claim_abandoned_checkouts`. P6's
+`store_analytics` is the dashboard's source.
+
+**Screens**
+
+| Route | Who | Does |
+|---|---|---|
+| `/admin/analytics` | everyone | 7 / 30 / 90 days: net revenue, orders, average order, copies sold, checkout → order, each against the period before; net revenue by day (line + crosshair tooltip + keyboard + table view); top products; discount codes with what they gave away; low stock |
+| `/admin/settings` | owners | store details and from-addresses, GSTIN (validated), invoice prefix; flat rate, free threshold, **per-state rates**; Shiprocket pickup nickname and a login test; low-stock threshold; taking-orders and reminder switches |
+| `/admin/settings/integrations` | owners | a webhook URL per topic (saved URL wins over env), a test send per topic, the last 50 events with status, error and **Retry now**, and which server keys are present (never their values) |
+| `/admin/settings/team` | owners | who has access and when they last signed in; invite; make owner / make staff; password link; remove (also deletes their login) |
+| `/admin/accept-invite` | public | set a password from an invite or reset link |
+
+Staff never see the Settings link; sent there, they land on `/admin` with a
+notice. The chart follows the dataviz method: one series, so no legend; brand
+lagoon for the marks, checked at 3:1+ against the ivory surface; text in ink;
+2px line, 10% wash, latest point marked; hover, arrow keys and a table view.
+
+**Invites without email.** Supabase's admin API makes the one-time token; the
+link points at our own page, which only spends it when the form is submitted, so
+a mail scanner can't burn it. With Resend configured it is emailed; without, the
+owner gets the link to copy. Inviting someone who already has a login falls back
+to a reset link.
+
+**Checkout**
+
+- **Per-state shipping.** STATE is now a list of the 36 states and UTs, so the
+  override can match; choosing one re-quotes. The free threshold still wins.
+- **Taking orders off.** `/api/checkout` answers 503 before touching Razorpay;
+  the page says orders are paused and disables Pay. Quotes still work.
+- **Abandoned checkouts** (PLAN §4 and §6, never built until now).
+  `/api/cron/abandoned` hourly: one email, an hour after the buyer pressed Pay
+  and stopped, never after 48 h, never twice (stamped *before* sending), never
+  to someone who has ordered since, not while switched off, and it doesn't spend
+  anyone's reminder while Resend is missing. The link `/checkout?recover=<id>`
+  rebuilds the basket at today's prices, capped at stock, without ever returning
+  the address or email.
+
+**Also:** a Shiprocket pickup nickname saved in Settings now wins over
+`SHIPROCKET_PICKUP_LOCATION`; the admin home's failed-outbox line links to the
+queue.
+
+**Verified.**
+
+- `scripts/verify/p7-test.mjs` — 60 checks against the live database: merges
+  keep other fields and the cached token, only changed keys are audited and a
+  no-op writes nothing; last-owner, self-removal and bad-role guards; the whole
+  Supabase invite path (link with signups off, a re-invite retiring the old
+  link, verify, set password, no replay, sign in, re-invite refused → reset link
+  verifies); abandoned-checkout claims across every window and exclusion, once
+  only; analytics against real orders — gross, a refund booked on its day,
+  copies net of a restock, the day's point, code usage, top product,
+  conversion; anon refused on all four functions and the private settings.
+  Settings and the owner row are snapshotted and restored.
+- `scripts/verify/p7-app-test.mjs` — 35 checks through the running app: state
+  rates in any case, unknown states, the threshold beating an override; closed
+  checkout refuses and writes nothing; recovery prices, stock cap, draft
+  filtered, no personal data, completed / week-old / unknown / malformed refused;
+  the reminder cron's secret, switch and no-Resend guards; five new admin routes
+  redirect strangers; the invite page is public.
+- In the browser: a recovery link restored the basket and cleaned the URL;
+  choosing Kerala with a ₹40 override re-quoted ₹60 → ₹40 → ₹60 for Goa. Every
+  new client component rendered under Turbopack through a temporary page; the
+  chart was driven with 30 days of sample data (crosshair tooltip, clean ₹ ticks).
+- All nine earlier suites still pass. `tsc` clean, `lint` 0 errors, `build` green.
+
+**Two things the checks caught.** The chart sized itself only from a
+ResizeObserver, which never fires in a hidden pane — it now measures once on
+mount. And its last two date labels collided at the right edge; a regular tick
+too close to the final one is now dropped.
+
+---
+
 ## Decisions
 
 1. **No Cache Components.** `use cache` needs `cacheComponents: true`, which
@@ -520,6 +600,17 @@ turns into a double-sent invoice under load.
 22. **Events show in the homepage's existing Updates section** (P6). The
     pre-commerce redesign had dropped the old events feed; the launch card and
     the "more events soon" line stay exactly as they were until an event exists.
+23. **Settings and the team are owner-only** (P7); staff run everything else.
+    PLAN rules out finer permissions.
+24. **Removing someone deletes their login** (P7), so a removed person holds no
+    account that `ADMIN_ALLOWLIST` could quietly re-admit.
+25. **Invite links are spent on submit, not on open** (P7), so link scanners in
+    mail clients can't consume them.
+26. **STATE became a dropdown** at checkout (P7). Per-state rates need a value
+    that matches; a free-text field would silently miss "kerala" or "KL". The
+    storefront otherwise looks the same.
+27. **The abandoned-checkout reminder is on by default** (P7), as PLAN §4
+    describes, with a switch in Settings. It's one email and says so.
 12. **`combinable` hidden** in the discount form; checkout takes one code, so it
     would do nothing. Column kept (owner, P4).
 
@@ -572,13 +663,14 @@ turns into a double-sent invoice under load.
     Razorpay test mode (lookup and a refused refund for an unknown payment), but
     moving money needs a captured payment — see item 1 and the checklist in 3.
 11. **Free-shipping redemptions record ₹0** as their amount, since the checkout
-    doesn't store the shipping it waived. Good enough for usage limits; P7's
-    "discount usage" card may want the waived amount.
+    doesn't store the shipping it waived. Analytics shows these as "free
+    shipping" rather than a figure.
 12. **No link from a customer to their NocoDB record** (PLAN §7). Still
     none: n8n owns the NocoDB write and nothing reports the row id back. The
     order payload carries the email NocoDB matches on.
-4. **`nivedith@aalmaram.com` has no Supabase Auth user.** Allowlisted, but
-   cannot sign in until the account is created in the dashboard.
+4. **`nivedith@aalmaram.com` now has a Supabase Auth user** (seen 17 Sep), but
+   no `admin_users` row until they first sign in. Once they have, set roles in
+   Settings → Team and clear `ADMIN_ALLOWLIST`.
 5. **Order numbers skip.** Test suites consume the sequence (after P4's runs,
    real orders start somewhere past `AAL1027`). Cosmetic; can be reset before go-live on request.
 6. **Roll the `service_role` key.** It passed through a chat transcript during

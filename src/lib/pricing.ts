@@ -1,5 +1,6 @@
 import "server-only";
 
+import { canonicalState } from "@/lib/india";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -48,10 +49,13 @@ export async function priceCart({
   lines,
   discountCode,
   email,
+  state,
 }: {
   lines: RequestedLine[];
   discountCode?: string | null;
   email?: string | null;
+  /** The delivery state, for per-state shipping rates. Absent → the flat rate. */
+  state?: string | null;
 }): Promise<PricedCart> {
   if (!Array.isArray(lines) || lines.length === 0) {
     throw new PricingError("Your basket is empty.");
@@ -126,7 +130,7 @@ export async function priceCart({
 
   const shippingPaise = freeShipping
     ? 0
-    : await shippingFor(subtotalPaise - discountPaise);
+    : await shippingFor(subtotalPaise - discountPaise, state);
 
   return {
     lines: priced,
@@ -142,15 +146,27 @@ export async function priceCart({
   };
 }
 
-async function shippingFor(payablePaise: number): Promise<number> {
+/**
+ * Free above the threshold, wherever it goes. Otherwise the state's own rate
+ * if one is set in Settings → Shipping, else the flat rate.
+ */
+async function shippingFor(payablePaise: number, state?: string | null): Promise<number> {
   const db = createAdminClient();
   const { data } = await db.from("settings").select("value").eq("key", "shipping").maybeSingle();
-  const value = (data?.value ?? {}) as { flat_rate_paise?: number; free_threshold_paise?: number };
+  const value = (data?.value ?? {}) as {
+    flat_rate_paise?: number;
+    free_threshold_paise?: number;
+    state_overrides?: Record<string, number>;
+  };
 
   const flat = Number(value.flat_rate_paise ?? 0);
   const threshold = Number(value.free_threshold_paise ?? 0);
 
   if (threshold > 0 && payablePaise >= threshold) return 0;
+
+  const canonical = canonicalState(state);
+  const override = canonical ? value.state_overrides?.[canonical] : undefined;
+  if (typeof override === "number" && Number.isInteger(override) && override >= 0) return override;
   return flat;
 }
 

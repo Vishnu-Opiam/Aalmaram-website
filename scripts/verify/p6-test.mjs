@@ -26,7 +26,6 @@ const check = (label, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${label.padEnd(64)} ${detail}`);
 };
 const section = (title) => console.log(`\n── ${title}`);
-const rid = (prefix) => `${prefix}_${Math.random().toString(36).slice(2, 12)}`;
 const minutesFromNow = (iso) => (new Date(iso).getTime() - Date.now()) / 60000;
 
 // This suite claims real rows. Refuse to run against a queue that has anything

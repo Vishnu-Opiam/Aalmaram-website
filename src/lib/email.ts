@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Resend } from "resend";
+import AbandonedCheckout, { type AbandonedCheckoutProps } from "@/emails/AbandonedCheckout";
 import OrderConfirmation, { type OrderConfirmationProps } from "@/emails/OrderConfirmation";
 import OutOfStockRefund, { type OutOfStockRefundProps } from "@/emails/OutOfStockRefund";
 import ShippingConfirmation, { type ShippingConfirmationProps } from "@/emails/ShippingConfirmation";
@@ -180,6 +181,69 @@ export async function sendOutOfStockRefund(
         .catch((err) => console.error("Founder out-of-stock alert failed", err));
     }
 
+    if (error) return { sent: false, error: error.message };
+    return { sent: true };
+  } catch (err) {
+    return { sent: false, error: err instanceof Error ? err.message : "Unknown email failure" };
+  }
+}
+
+/**
+ * The one reminder about a basket left at the payment step. Sent from
+ * /api/cron/abandoned, which has already stamped the checkout so this can
+ * never go twice.
+ */
+export async function sendAbandonedCheckout(
+  to: string,
+  props: Omit<AbandonedCheckoutProps, "supportEmail">
+): Promise<{ sent: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    return { sent: false, error: "RESEND_API_KEY is not set — abandoned-checkout email skipped." };
+  }
+
+  try {
+    const { from, supportEmail } = await storeSettings();
+    const { error } = await client().emails.send({
+      from,
+      to,
+      replyTo: supportEmail,
+      subject: "Your basket is still here",
+      react: AbandonedCheckout({ ...props, supportEmail }),
+    });
+    if (error) return { sent: false, error: error.message };
+    return { sent: true };
+  } catch (err) {
+    return { sent: false, error: err instanceof Error ? err.message : "Unknown email failure" };
+  }
+}
+
+/** A sign-in link for a new team member, or a password reset for an existing one. */
+export async function sendAdminAccessLink(
+  to: string,
+  params: { link: string; invitedBy: string; kind: "invite" | "recovery" }
+): Promise<{ sent: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    return { sent: false, error: "RESEND_API_KEY is not set — copy the link and send it yourself." };
+  }
+
+  try {
+    const { from } = await storeSettings();
+    const invite = params.kind === "invite";
+    const { error } = await client().emails.send({
+      from,
+      to,
+      subject: invite ? "You've been added to the Aalmaram admin" : "Set a new password for the Aalmaram admin",
+      text: [
+        invite
+          ? `${params.invitedBy} has added you to the Aalmaram store admin.`
+          : `${params.invitedBy} has sent you a link to set a new password for the Aalmaram store admin.`,
+        "",
+        "Choose your password here (the link works once, and expires within the hour):",
+        params.link,
+        "",
+        "If you weren't expecting this, you can ignore it.",
+      ].join("\n"),
+    });
     if (error) return { sent: false, error: error.message };
     return { sent: true };
   } catch (err) {

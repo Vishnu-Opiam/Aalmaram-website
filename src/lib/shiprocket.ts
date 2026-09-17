@@ -55,16 +55,14 @@ function credentials() {
 
 /** The nickname of the pickup address, exactly as Shiprocket has it. */
 export async function pickupLocation(): Promise<string> {
-  const fromEnv = process.env.SHIPROCKET_PICKUP_LOCATION?.trim();
-  if (fromEnv) return fromEnv;
-
+  // Saved in Settings wins, as it does for webhook URLs; the env var is the fallback.
   const db = createAdminClient();
   const { data } = await db.from("settings").select("value").eq("key", "shiprocket").maybeSingle();
   const value = (data?.value ?? {}) as { pickup_location?: string };
-  const nickname = value.pickup_location?.trim();
+  const nickname = value.pickup_location?.trim() || process.env.SHIPROCKET_PICKUP_LOCATION?.trim();
   if (!nickname) {
     throw new ShiprocketError(
-      "No Shiprocket pickup location is set. Add SHIPROCKET_PICKUP_LOCATION to .env.local, exactly as the nickname reads in Shiprocket.",
+      "No Shiprocket pickup location is set. Add it in Admin → Settings → Shiprocket, exactly as the nickname reads in Shiprocket.",
       0
     );
   }

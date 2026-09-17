@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import CheckoutForm from "./CheckoutForm";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import { getCheckoutEnabled } from "@/lib/commerce";
 
 export const metadata: Metadata = { title: "Checkout - Aalmaram" };
+
+// Closing the shop in Settings revalidates this at once; this is the floor.
+export const revalidate = 60;
 
 /**
  * Contact, address, and payment.
@@ -12,7 +16,9 @@ export const metadata: Metadata = { title: "Checkout - Aalmaram" };
  * browser adds nothing up. The same pricing code runs again when the Razorpay
  * order is created, so what is displayed and what is charged cannot drift.
  */
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  const checkoutEnabled = await getCheckoutEnabled();
+
   return (
     <>
       <Header />
@@ -24,7 +30,7 @@ export default function CheckoutPage() {
         >
           Checkout.
         </h1>
-        <CheckoutForm />
+        <CheckoutForm checkoutEnabled={checkoutEnabled} />
       </main>
       <Footer />
     </>

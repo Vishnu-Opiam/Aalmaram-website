@@ -79,6 +79,16 @@ export async function requireAdmin(): Promise<AdminSession> {
   return session;
 }
 
+/**
+ * For settings and the team: owners only. Staff run the shop day to day but
+ * cannot change what it charges, where it sends events, or who gets in.
+ */
+export async function requireOwner(): Promise<AdminSession> {
+  const session = await requireAdmin();
+  if (session.role !== "owner") redirect("/admin?denied=owner");
+  return session;
+}
+
 /** For route handlers, which answer with 401 rather than a redirect. */
 export async function requireAdminApi(): Promise<AdminSession | null> {
   return getAdminSession();

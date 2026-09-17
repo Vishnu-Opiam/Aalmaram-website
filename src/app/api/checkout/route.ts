@@ -62,6 +62,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // The owner can close the shop from Settings without taking the site down.
+  const { data: features } = await db.from("settings").select("value").eq("key", "features").maybeSingle();
+  if ((features?.value as { checkout_enabled?: boolean } | null)?.checkout_enabled === false) {
+    return NextResponse.json(
+      { error: "We are not taking orders just now. Please check back soon." },
+      { status: 503 }
+    );
+  }
+
   if (!isRazorpayConfigured()) {
     return NextResponse.json(
       { error: "Payments are not configured yet. Please try again shortly." },
@@ -87,7 +96,7 @@ export async function POST(request: Request) {
 
   let cart;
   try {
-    cart = await priceCart({ lines, discountCode, email });
+    cart = await priceCart({ lines, discountCode, email, state: address.state });
   } catch (err) {
     if (err instanceof PricingError) {
       return NextResponse.json({ error: err.message }, { status: 409 });

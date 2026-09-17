@@ -61,3 +61,52 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/admin/login");
 }
+
+/**
+ * The end of an invite or password link: spend the one-time token, set the
+ * password, and sign in. Verified here on submit rather than when the page
+ * loads, so a link scanner can't use the token up first.
+ */
+export async function acceptInvite(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  const tokenHash = String(formData.get("token_hash") ?? "");
+  const type = String(formData.get("type") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (type !== "invite" && type !== "recovery") return { error: "That link isn't valid." };
+  if (password.length < 10) return { error: "Use at least 10 characters." };
+  if (password !== confirm) return { error: "The two passwords don't match." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+  if (error || !data.user?.email) {
+    return { error: "That link has expired or was already used. Ask the store owner for a new one." };
+  }
+
+  const email = data.user.email.toLowerCase();
+  const admin = createAdminClient();
+  const { data: adminUser } = await admin.from("admin_users").select("id").eq("email", email).maybeSingle();
+  if (!adminUser && !adminAllowlist().includes(email)) {
+    await supabase.auth.signOut();
+    return { error: "That account doesn't have admin access any more." };
+  }
+
+  const { error: passwordError } = await supabase.auth.updateUser({ password });
+  if (passwordError) {
+    return { error: `Couldn't set that password: ${passwordError.message}` };
+  }
+
+  await admin
+    .from("admin_users")
+    .upsert(
+      {
+        email,
+        user_id: data.user.id,
+        last_login_at: new Date().toISOString(),
+        ...(adminUser ? {} : { role: "owner" as const }),
+      },
+      { onConflict: "email" }
+    );
+
+  redirect("/admin");
+}

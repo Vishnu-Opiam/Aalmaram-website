@@ -110,6 +110,12 @@ export async function getFeaturedProduct(): Promise<StorefrontProduct | null> {
   return products[0] ?? null;
 }
 
+/** Whether the owner has checkout switched on (Settings → Features). On unless explicitly off. */
+export async function getCheckoutEnabled(): Promise<boolean> {
+  const { data } = await publicClient().from("settings").select("value").eq("key", "features").maybeSingle();
+  return (data?.value as { checkout_enabled?: boolean } | null)?.checkout_enabled !== false;
+}
+
 export async function getShippingSettings(): Promise<ShippingSettings> {
   const { data } = await publicClient()
     .from("settings")

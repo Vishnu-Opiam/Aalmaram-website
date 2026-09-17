@@ -44,6 +44,8 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          invited_at: string | null
+          invited_by: string | null
           last_login_at: string | null
           name: string
           role: string
@@ -54,6 +56,8 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          invited_at?: string | null
+          invited_by?: string | null
           last_login_at?: string | null
           name?: string
           role?: string
@@ -64,6 +68,8 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          invited_at?: string | null
+          invited_by?: string | null
           last_login_at?: string | null
           name?: string
           role?: string
@@ -1019,6 +1025,22 @@ export type Database = {
         Args: { p_actor?: string; p_reason?: string; p_shipment_id: string }
         Returns: Json
       }
+      claim_abandoned_checkouts: {
+        Args: {
+          p_after_minutes?: number
+          p_limit?: number
+          p_within_hours?: number
+        }
+        Returns: {
+          created_at: string
+          discount_code: string
+          email: string
+          id: string
+          line_items: Json
+          shipping_address: Json
+          total_paise: number
+        }[]
+      }
       claim_outbox: {
         Args: { p_lease_seconds?: number; p_limit?: number; p_topics: string[] }
         Returns: {
@@ -1083,6 +1105,10 @@ export type Database = {
         }
         Returns: string
       }
+      merge_setting: {
+        Args: { p_actor: string; p_key: string; p_patch: Json }
+        Returns: Json
+      }
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
@@ -1105,8 +1131,16 @@ export type Database = {
         }
         Returns: Json
       }
+      remove_admin_user: {
+        Args: { p_actor: string; p_admin_id: string }
+        Returns: Json
+      }
       retry_outbox: {
         Args: { p_actor: string; p_id: string }
+        Returns: undefined
+      }
+      set_admin_role: {
+        Args: { p_actor: string; p_admin_id: string; p_role: string }
         Returns: undefined
       }
       set_shiprocket_token: {

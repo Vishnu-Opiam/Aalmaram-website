@@ -131,7 +131,7 @@ try {
   section("order.paid, delivered by the kick");
 
   const rzOrder = `order_p6app_${RUN}`;
-  const { data: checkout, error: checkoutError } = await db
+  const { error: checkoutError } = await db
     .from("checkouts")
     .insert({
       email,

@@ -15,6 +15,7 @@ const bodySchema = z.object({
     .max(20),
   discountCode: z.string().trim().max(64).nullish(),
   email: z.string().trim().email().max(254).nullish(),
+  state: z.string().trim().max(100).nullish(),
 });
 
 export async function POST(request: Request) {

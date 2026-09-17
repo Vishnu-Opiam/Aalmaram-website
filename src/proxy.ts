@@ -51,7 +51,10 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  // Accepting an invite is how someone without a session gets one.
+  const isPublicAdminPage = pathname === "/admin/login" || pathname === "/admin/accept-invite";
+
+  if (!user && pathname.startsWith("/admin") && !isPublicAdminPage) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     loginUrl.search = "";

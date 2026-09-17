@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { formatPaise } from "@/lib/format";
+import { INDIAN_STATES } from "@/lib/india";
 
 const DISCOUNT_STORAGE_KEY = "aalmaram_discount_v1";
+const CART_STORAGE_KEY = "aalmaram_cart_v2";
 
 interface Quote {
   subtotalPaise: number;
@@ -56,11 +58,13 @@ function toRazorpayContact(phone: string): string {
 const input = "preorder-input font-body text-[15px] w-full";
 const label = "text-[10px] tracking-[.24em] font-body opacity-70";
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabled?: boolean }) {
   const router = useRouter();
   const { items, clearCart } = useCart();
 
   const [discountCode, setDiscountCode] = useState("");
+  const [deliveryState, setDeliveryState] = useState("");
+  const [recovering, setRecovering] = useState(false);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState("");
@@ -72,6 +76,34 @@ export default function CheckoutForm() {
     () => items.map((it) => ({ variantId: it.variantId, quantity: it.qty })),
     [items]
   );
+
+  // The link in an abandoned-checkout email: /checkout?recover=<checkout id>.
+  // The server hands back the basket as it now stands (current prices, only
+  // what is still for sale); it goes into storage and the page reloads clean,
+  // so the cart provider picks it up the normal way.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("recover");
+    if (!id) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecovering(true);
+    (async () => {
+      try {
+        const response = await fetch("/api/checkout/recover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(data.items));
+            if (data.discountCode) localStorage.setItem(DISCOUNT_STORAGE_KEY, data.discountCode);
+          }
+        }
+      } catch {}
+      window.location.replace("/checkout");
+    })();
+  }, []);
 
   useEffect(() => {
     try {
@@ -90,7 +122,7 @@ export default function CheckoutForm() {
         const response = await fetch("/api/checkout/quote", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lines, discountCode: code }),
+          body: JSON.stringify({ lines, discountCode: code, state: deliveryState || null }),
         });
         const data = await response.json();
         if (!response.ok) {
@@ -106,7 +138,8 @@ export default function CheckoutForm() {
         setQuoting(false);
       }
     },
-    [lines]
+    // Picking a state re-quotes: some states have their own shipping rate.
+    [lines, deliveryState]
   );
 
   useEffect(() => {
@@ -222,6 +255,14 @@ export default function CheckoutForm() {
     }
   };
 
+  if (recovering) {
+    return (
+      <div className="mt-12">
+        <p className="font-display italic text-[22px] opacity-80">Finding your basket…</p>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="mt-12">
@@ -297,7 +338,23 @@ export default function CheckoutForm() {
               </label>
               <label className="block">
                 <span className={label}>STATE *</span>
-                <input name="state" required autoComplete="address-level1" className={input} />
+                <select
+                  name="state"
+                  required
+                  autoComplete="address-level1"
+                  value={deliveryState}
+                  onChange={(e) => setDeliveryState(e.target.value)}
+                  className={input}
+                >
+                  <option value="" disabled>
+                    Choose…
+                  </option>
+                  {INDIAN_STATES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block">
                 <span className={label}>PIN CODE *</span>
@@ -379,6 +436,16 @@ export default function CheckoutForm() {
               </div>
             </div>
 
+            {!checkoutEnabled && (
+              <p
+                role="status"
+                className="mt-5 text-[13px] font-body p-3 rounded"
+                style={{ color: "var(--night)", background: "rgba(198,161,91,.18)" }}
+              >
+                We are not taking orders just now. Please check back soon.
+              </p>
+            )}
+
             {error && (
               <p
                 className="mt-5 text-[13px] font-body p-3 rounded"
@@ -390,7 +457,7 @@ export default function CheckoutForm() {
 
             <button
               type="submit"
-              disabled={paying || quoting || !quote || !scriptReady}
+              disabled={!checkoutEnabled || paying || quoting || !quote || !scriptReady}
               className="btn-night w-full mt-7 py-4 text-[12px] tracking-[.28em] font-body font-normal"
             >
               {paying ? "Opening payment…" : scriptReady ? "Pay securely" : "Loading payment…"}
