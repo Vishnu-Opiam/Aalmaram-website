@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aalmaram
 
-## Getting Started
+The Aalmaram website and store: a Next.js 16 app on Vercel with its own
+commerce system — Supabase (Postgres, Auth, Storage), Razorpay (prepaid),
+Shiprocket, Resend — feeding the existing n8n automations.
 
-First, run the development server:
+## Documentation
+
+| | |
+|---|---|
+| [`docs/custom-commerce/PLAN.md`](docs/custom-commerce/PLAN.md) | Architecture and data model |
+| [`docs/custom-commerce/PROGRESS.md`](docs/custom-commerce/PROGRESS.md) | What was built, how it was verified, decisions, open items |
+| [`docs/custom-commerce/GO-LIVE.md`](docs/custom-commerce/GO-LIVE.md) | Configuration and the live smoke order |
+| [`docs/custom-commerce/EVENTS.md`](docs/custom-commerce/EVENTS.md) | Store events → n8n, payloads, rewiring the flows |
+
+## Develop
 
 ```bash
+npm install
+cp .env.local.example .env.local   # then fill it in — test Razorpay keys only
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000, and http://localhost:3000/admin for the dashboard.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Script | |
+|---|---|
+| `npm run typecheck` / `npm run lint` / `npm run build` | the gates every change passes |
+| `npm run db:push` | apply `supabase/migrations` to the linked project |
+| `npm run db:types` | regenerate `src/lib/database.types.ts` after a migration |
+| `npm run db:seed` | the catalogue and live discount codes, idempotently |
+| `npm run migrate:shopify` | import Shopify history (dry run unless `--apply`) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Verify
 
-## Learn More
+The suites in `scripts/verify/` run against the live database and clean up after
+themselves. The `*-app-test` ones also need `npm run dev` and a throwaway
+`.env.development.local` (see each file's header; delete it afterwards).
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+node --env-file=.env.local scripts/verify/rpc-test.mjs
+node --env-file=.env.local scripts/verify/p4-test.mjs
+node --env-file=.env.local scripts/verify/p5-test.mjs
+node --env-file=.env.local scripts/verify/p6-test.mjs
+node --env-file=.env.local scripts/verify/p7-test.mjs
+node --env-file=.env.local scripts/verify/p8-test.mjs
+node --env-file=.env.local --env-file=.env.development.local scripts/verify/p3-test.mjs
+node --env-file=.env.local --env-file=.env.development.local scripts/verify/p4-app-test.mjs
+node --env-file=.env.local --env-file=.env.development.local scripts/verify/p5-app-test.mjs
+node --env-file=.env.local --env-file=.env.development.local scripts/verify/p6-app-test.mjs
+node --env-file=.env.local --env-file=.env.development.local scripts/verify/p7-app-test.mjs
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This is Next.js 16: read the guides in `node_modules/next/dist/docs/` before
+using an App Router API (see `AGENTS.md`).

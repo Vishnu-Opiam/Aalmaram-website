@@ -1,0 +1,89 @@
+{
+  "price_rules": [
+    {
+      "id": 990000401,
+      "title": "Summer",
+      "value_type": "percentage",
+      "value": "-15.0",
+      "target_type": "line_item",
+      "target_selection": "all",
+      "entitled_product_ids": [],
+      "once_per_customer": true,
+      "usage_limit": 5,
+      "starts_at": "2026-03-01T00:00:00+05:30",
+      "ends_at": "2026-04-01T00:00:00+05:30",
+      "prerequisite_subtotal_range": {
+        "greater_than_or_equal_to": "500.0"
+      },
+      "discount_codes": [
+        {
+          "id": 1,
+          "code": "p8summer",
+          "usage_count": 3
+        }
+      ]
+    },
+    {
+      "id": 990000402,
+      "title": "Free shipping",
+      "value_type": "percentage",
+      "value": "-100.0",
+      "target_type": "shipping_line",
+      "target_selection": "all",
+      "entitled_product_ids": [],
+      "once_per_customer": false,
+      "usage_limit": null,
+      "starts_at": "2026-03-01T00:00:00+05:30",
+      "ends_at": null,
+      "discount_codes": [
+        {
+          "id": 2,
+          "code": "P8FREESHIP",
+          "usage_count": 0
+        }
+      ]
+    },
+    {
+      "id": 990000403,
+      "title": "Postcards",
+      "value_type": "fixed_amount",
+      "value": "-50.0",
+      "target_type": "line_item",
+      "target_selection": "entitled",
+      "entitled_product_ids": [
+        990000002
+      ],
+      "once_per_customer": false,
+      "usage_limit": null,
+      "starts_at": "2026-03-01T00:00:00+05:30",
+      "ends_at": null,
+      "discount_codes": [
+        {
+          "id": 3,
+          "code": "P8POSTCARD",
+          "usage_count": 1
+        }
+      ]
+    },
+    {
+      "id": 990000404,
+      "title": "Nagma",
+      "value_type": "percentage",
+      "value": "-15.0",
+      "target_type": "line_item",
+      "target_selection": "all",
+      "entitled_product_ids": [],
+      "once_per_customer": false,
+      "usage_limit": null,
+      "starts_at": "2026-01-01T00:00:00+05:30",
+      "ends_at": null,
+      "discount_codes": [
+        {
+          "id": 4,
+          "code": "NAGMA15",
+          "usage_count": 40
+        }
+      ]
+    }
+  ]
+}

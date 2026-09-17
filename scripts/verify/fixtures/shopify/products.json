@@ -1,0 +1,46 @@
+{
+  "products": [
+    {
+      "id": 990000001,
+      "title": "Nandu in Muziris",
+      "handle": "nandu-in-muziris",
+      "body_html": "<p>Already in the store.</p>",
+      "status": "active",
+      "tags": "picture-book",
+      "variants": [
+        {
+          "id": 990000101,
+          "title": "Default Title",
+          "sku": "AAL-NANDU-01",
+          "price": "700.00",
+          "compare_at_price": "1400.00",
+          "inventory_quantity": 3,
+          "grams": 500,
+          "position": 1
+        }
+      ],
+      "images": []
+    },
+    {
+      "id": 990000002,
+      "title": "P8 Postcard Set",
+      "handle": "P8 Postcards",
+      "body_html": "<p>Six <strong>postcards</strong> &amp; an <em>envelope</em>.</p><p>Printed in Kochi.</p>",
+      "status": "active",
+      "tags": "postcards, stationery",
+      "variants": [
+        {
+          "id": 990000201,
+          "title": "Default Title",
+          "sku": "P8-POST",
+          "price": "250.00",
+          "compare_at_price": null,
+          "inventory_quantity": 12,
+          "grams": 80,
+          "position": 1
+        }
+      ],
+      "images": []
+    }
+  ]
+}

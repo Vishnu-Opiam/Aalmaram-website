@@ -11,7 +11,8 @@
     "db:link": "npx supabase link",
     "db:push": "npx supabase db push",
     "db:types": "npx supabase gen types typescript --linked > src/lib/database.types.ts",
-    "db:seed": "tsx --env-file=.env.local scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "migrate:shopify": "tsx --env-file=.env.local scripts/migrate-from-shopify.ts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.9",

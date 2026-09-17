@@ -14,7 +14,9 @@ Running log for the build described in [`PLAN.md`](./PLAN.md), executed per
 - [x] **P5 Shipping** — Shiprocket client, shipment RPCs, admin panels, webhook, tracking cron
 - [x] **P6 Events feed + n8n** — outbox drain + cron, events in Supabase, n8n workflows rebuilt, low-stock event
 - [x] **P7 Analytics + settings** — analytics + chart, store/shipping/integrations/team settings, invites, abandoned-checkout email
-- [ ] P8 Migration + cutover
+- [x] **P8 Migration + cutover** — Shopify import script, Shopify code removed, store.aalmaram.com redirects, [GO-LIVE.md](./GO-LIVE.md)
+
+**The build is complete.** What remains is configuration only the owner can do — keys, DNS, n8n, the import run and a ₹1 live order — in [`GO-LIVE.md`](./GO-LIVE.md).
 
 ---
 
@@ -538,6 +540,78 @@ too close to the final one is now dropped.
 
 ---
 
+## P8 — what landed
+
+**Migration** `…20260915090000_p8_shopify_import`: `shopify_id` (unique when
+set) on products, customers, orders and discounts; `import_shopify_order`,
+which writes one historical order and its items atomically and idempotently and
+nothing else; `recompute_customer_totals`.
+
+**`scripts/migrate-from-shopify.ts`** (`npm run migrate:shopify`). Dry run by
+default; `--apply` writes. Reads Shopify's REST API with pagination and rate
+limiting, or `--from-dir` exports. `--since` (default 12 months), `--only`,
+`--skip-images`, `--report`.
+
+- **Orders** go in as `SH<number>`, `source = shopify-import`, placed at
+  Shopify's processed time; payment and fulfilment mapped, refunds summed from
+  successful transactions only, closed orders archived (so they don't sit in
+  "waiting to be sent"), cancelled ones cancelled with the reason. Lines link to
+  our variants by Shopify variant or SKU, else stay text. Non-INR orders are
+  skipped and reported. **They take no stock, touch no discount counters and
+  queue nothing for n8n** — Zoho already invoiced them.
+- **Customers** created with consent and its date; an existing email is linked,
+  not overwritten. Guest buyers get a row from their address. Totals are
+  recomputed from the orders afterwards.
+- **Products** already in the store (same handle) are linked; new ones arrive
+  as **drafts**, HTML turned into the storefront's markdown, images copied into
+  Supabase Storage.
+- **Discount codes** mapped from price rules — percentage, fixed, free shipping,
+  minimum, limits, usage, window, product scope; an existing code is linked.
+
+**Shopify removed from the app.** Deleted `src/lib/shopify.ts` and
+`test-shopify.js`; nothing in `src` reads a `SHOPIFY_*` variable. The two
+the import needs are documented in `.env.local.example` as one-off.
+`.env.local` itself was left alone — its dead `SHOPIFY_*`, `ADMIN_PASSWORD`,
+`ADMIN_SESSION_SECRET` and `GOOGLE_SHEET_ORDER_WEBHOOK_URL` lines are the
+owner's to delete (`GOOGLE_SHEET_WEBHOOK_URL` is still used by
+`/api/preorder`).
+
+**`store.aalmaram.com`** (PLAN §13 q5, the recommended answer): `next.config.ts`
+308-redirects it to the apex once its DNS points here — product pages keep their
+handle, collections go to `/shop`, the cart to `/checkout`, anything else home.
+
+**Docs:** [`GO-LIVE.md`](./GO-LIVE.md), the ordered checklist with a "worked if"
+for each step, including the ₹1 live order and an order-number reset guarded
+against real orders; a real `README.md`.
+
+**Verified.**
+
+- `scripts/verify/p8-test.mjs` — 44 checks running the real script against the
+  live database from fixtures in Shopify's REST shapes: the dry run writes
+  nothing; apply imports exactly the in-window INR orders with correct paise,
+  statuses, archive/cancel handling, placed time, code, note, address and line
+  links; partial refunds count only successful transactions; **stock, discount
+  counters and the outbox don't move**; the existing book and code are linked,
+  not overwritten; the new product is a draft with converted markdown, split
+  tags and its variant; customers get consent and correct totals (a refund
+  netted off, a cancelled order counting for nothing); codes map type, value,
+  minimum, limits, usage, expiry and product scope; a second run creates nothing;
+  an imported order can be cancelled without Razorpay. Cleans up, including the
+  ids it links onto real rows.
+- `store.aalmaram.com` redirects checked against the dev server (308s to the
+  right apex paths; the normal host still 200).
+- All ten earlier suites pass again with the Shopify code gone. `tsc` clean,
+  `lint` 0 errors (10 pre-existing warnings), `build` green.
+- The throwaway `.env.development.local` used by the app suites is deleted.
+- Live data left as found: no orders, stock 50, no events, settings unchanged.
+
+**Not run: the import against Shopify itself.** The Shopify credential has been
+dead since before P2, so the API path of the script (pagination, the real field
+values) is unexercised; the fixtures follow Shopify's documented REST shapes.
+Run the dry run first (GO-LIVE §8) and read its warnings.
+
+---
+
 ## Decisions
 
 1. **No Cache Components.** `use cache` needs `cacheComponents: true`, which
@@ -611,6 +685,12 @@ too close to the final one is now dropped.
     storefront otherwise looks the same.
 27. **The abandoned-checkout reminder is on by default** (P7), as PLAN §4
     describes, with a switch in Settings. It's one email and says so.
+28. **Imported orders never enter the outbox** (P8), and don't move stock or
+    discount counters — Shopify and Zoho already accounted for them.
+29. **Imported products arrive as drafts** (P8), so nothing goes on sale by
+    accident; things already in the store are linked, never overwritten.
+30. **`store.aalmaram.com` redirects to the apex** (P8), PLAN §13's recommended
+    answer, keeping product links alive.
 12. **`combinable` hidden** in the discount form; checkout takes one code, so it
     would do nothing. Column kept (owner, P4).
 

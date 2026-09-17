@@ -198,6 +198,7 @@ export type Database = {
           marketing_consent_at: string | null
           notes: string
           phone: string | null
+          shopify_id: number | null
           total_orders: number
           total_spent_paise: number
           updated_at: string
@@ -212,6 +213,7 @@ export type Database = {
           marketing_consent_at?: string | null
           notes?: string
           phone?: string | null
+          shopify_id?: number | null
           total_orders?: number
           total_spent_paise?: number
           updated_at?: string
@@ -226,6 +228,7 @@ export type Database = {
           marketing_consent_at?: string | null
           notes?: string
           phone?: string | null
+          shopify_id?: number | null
           total_orders?: number
           total_spent_paise?: number
           updated_at?: string
@@ -286,6 +289,7 @@ export type Database = {
           min_subtotal_paise: number | null
           once_per_customer: boolean
           product_ids: string[] | null
+          shopify_id: number | null
           starts_at: string
           tag: string | null
           title: string
@@ -307,6 +311,7 @@ export type Database = {
           min_subtotal_paise?: number | null
           once_per_customer?: boolean
           product_ids?: string[] | null
+          shopify_id?: number | null
           starts_at?: string
           tag?: string | null
           title?: string
@@ -328,6 +333,7 @@ export type Database = {
           min_subtotal_paise?: number | null
           once_per_customer?: boolean
           product_ids?: string[] | null
+          shopify_id?: number | null
           starts_at?: string
           tag?: string | null
           title?: string
@@ -518,6 +524,7 @@ export type Database = {
           refunded_paise: number
           shipping_address: Json
           shipping_paise: number
+          shopify_id: number | null
           source: string
           subtotal_paise: number
           tax_paise: number
@@ -547,6 +554,7 @@ export type Database = {
           refunded_paise?: number
           shipping_address?: Json
           shipping_paise?: number
+          shopify_id?: number | null
           source?: string
           subtotal_paise?: number
           tax_paise?: number
@@ -576,6 +584,7 @@ export type Database = {
           refunded_paise?: number
           shipping_address?: Json
           shipping_paise?: number
+          shopify_id?: number | null
           source?: string
           subtotal_paise?: number
           tax_paise?: number
@@ -696,6 +705,7 @@ export type Database = {
           requires_shipping: boolean
           seo_description: string | null
           seo_title: string | null
+          shopify_id: number | null
           status: string
           subtitle: string
           tags: string[]
@@ -711,6 +721,7 @@ export type Database = {
           requires_shipping?: boolean
           seo_description?: string | null
           seo_title?: string | null
+          shopify_id?: number | null
           status?: string
           subtitle?: string
           tags?: string[]
@@ -726,6 +737,7 @@ export type Database = {
           requires_shipping?: boolean
           seo_description?: string | null
           seo_title?: string | null
+          shopify_id?: number | null
           status?: string
           subtitle?: string
           tags?: string[]
@@ -1105,6 +1117,10 @@ export type Database = {
         }
         Returns: string
       }
+      import_shopify_order: {
+        Args: { p_items: Json; p_order: Json }
+        Returns: Json
+      }
       merge_setting: {
         Args: { p_actor: string; p_key: string; p_patch: Json }
         Returns: Json
@@ -1112,6 +1128,10 @@ export type Database = {
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
+      }
+      recompute_customer_totals: {
+        Args: { p_emails: string[] }
+        Returns: number
       }
       record_out_of_stock_payment: {
         Args: {
