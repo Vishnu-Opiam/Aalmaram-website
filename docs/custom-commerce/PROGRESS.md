@@ -655,8 +655,9 @@ Run the dry run first (GO-LIVE §8) and read its warnings.
     an unrecognised status is logged and ignored rather than guessed at.
 15. **One live shipment per order**, enforced by a partial unique index. A
     cancelled one may be replaced.
-16. **The tracking cron is scheduled in `vercel.json`**, twice a day. Vercel's
-    Hobby plan allows one cron run a day; on Hobby this needs trimming to one.
+16. **All three crons run once a day** (18 Sep), because the project is on
+    Vercel Hobby, which rejects the deploy for anything more frequent. See
+    GO-LIVE §0 for the Pro schedules.
 17. **Order events carry a Shopify-shaped order** (P6). The existing n8n flows
     read `order.line_items`, `order.customer`, `order.total_price`; putting those
     fields at the top level means only their trigger nodes change. Our own data

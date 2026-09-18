@@ -3,15 +3,15 @@
   "crons": [
     {
       "path": "/api/cron/track",
-      "schedule": "0 5,13 * * *"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/outbox",
-      "schedule": "15 * * * *"
+      "schedule": "15 5 * * *"
     },
     {
       "path": "/api/cron/abandoned",
-      "schedule": "45 * * * *"
+      "schedule": "45 5 * * *"
     }
   ]
 }

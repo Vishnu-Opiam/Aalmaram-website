@@ -18,11 +18,12 @@ changing them. `.env.local.example` lists every variable with a note.
   and `.env.local`.
 - [ ] **Change your admin password** (also exposed in chat): Admin → Settings →
   Team → your row → *Password link*, then open the link.
-- [ ] **Check the Vercel plan.** `vercel.json` schedules three crons: tracking
-  twice a day, the n8n event drain hourly, abandoned-checkout reminders hourly.
-  **Hobby allows one run per day per cron and fails the deploy otherwise.** On
-  Hobby, change the three schedules to once a day (e.g. `0 5 * * *`, `15 5 * * *`,
-  `45 5 * * *`) — orders still reach n8n within seconds; only retries slow down.
+- [x] **Vercel plan.** The project is on Hobby, which allows one run per day per
+  cron, so `vercel.json` runs all three once a day (tracking 05:00, n8n event
+  drain 05:15, abandoned-checkout reminders 05:45 UTC). Orders still reach n8n
+  within seconds; only retries wait for the daily run, and reminders go out 1–25 h
+  after the checkout instead of about an hour. On Pro, the drain and reminders can
+  go back to hourly (`15 * * * *`, `45 * * * *`) and tracking to `0 5,13 * * *`.
 - [ ] Set `NEXT_PUBLIC_SITE_URL=https://aalmaram.com` and a long random
   `CRON_SECRET` in Vercel.
 
