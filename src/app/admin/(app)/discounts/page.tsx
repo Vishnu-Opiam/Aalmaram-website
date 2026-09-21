@@ -23,7 +23,7 @@ export default async function AdminDiscountsPage() {
         aside={
           <Link
             href="/admin/discounts/new"
-            className="btn-night px-7 py-3 text-[12px] tracking-[.24em] font-body font-normal"
+            className="btn-night px-4 py-2.5 text-[13px]"
           >
             New code
           </Link>
@@ -39,18 +39,18 @@ export default async function AdminDiscountsPage() {
       )}
 
       {!discounts?.length ? (
-        <p className="mt-12 font-body font-light text-[14px] opacity-60">No codes yet.</p>
+        <p className="mt-6 admin-card px-6 py-10 text-center text-[14px] opacity-70">No codes yet.</p>
       ) : (
-        <div className="mt-10 overflow-x-auto">
-          <table className="w-full text-left font-body text-[13.5px]">
+        <div className="mt-4 admin-card overflow-x-auto">
+          <table className="w-full text-left text-[13.5px]">
             <thead>
-              <tr className="text-[10px] tracking-[.22em] opacity-60">
-                <th className="py-3 pr-4 font-normal">CODE</th>
-                <th className="py-3 pr-4 font-normal">GIVES</th>
-                <th className="py-3 pr-4 font-normal">ON</th>
-                <th className="py-3 pr-4 font-normal text-right">USED</th>
-                <th className="py-3 pr-4 font-normal">WINDOW</th>
-                <th className="py-3 pr-4 font-normal">STATUS</th>
+              <tr>
+                <th className="py-3 pr-4 font-normal">Code</th>
+                <th className="py-3 pr-4 font-normal">Gives</th>
+                <th className="py-3 pr-4 font-normal">On</th>
+                <th className="py-3 pr-4 font-normal text-right">Used</th>
+                <th className="py-3 pr-4 font-normal">Window</th>
+                <th className="py-3 pr-4 font-normal">Status</th>
                 <th className="py-3 font-normal" />
               </tr>
             </thead>
@@ -58,22 +58,22 @@ export default async function AdminDiscountsPage() {
               {discounts.map((d) => {
                 const status = discountStatus(d);
                 return (
-                  <tr key={d.id} style={{ borderTop: "1px solid rgba(35,47,72,.1)" }}>
+                  <tr key={d.id} style={{ borderTop: "1px solid var(--a-border)" }}>
                     <td className="py-4 pr-4">
-                      <Link href={`/admin/discounts/${d.id}`} className="font-display italic text-[17px] qlink">
+                      <Link href={`/admin/discounts/${d.id}`} className="font-semibold text-[14px] qlink">
                         {d.code}
                       </Link>
-                      {d.title && <div className="text-[11.5px] font-light opacity-60">{d.title}</div>}
+                      {d.title && <div className="text-[12.5px] opacity-60">{d.title}</div>}
                     </td>
-                    <td className="py-4 pr-4 font-light">{describeValue(d)}</td>
-                    <td className="py-4 pr-4 font-light opacity-80">
+                    <td className="py-4 pr-4">{describeValue(d)}</td>
+                    <td className="py-4 pr-4 opacity-80">
                       {d.applies_to === "all" ? "Everything" : d.applies_to === "products" ? "Chosen products" : "Tagged products"}
                     </td>
-                    <td className="py-4 pr-4 text-right font-light whitespace-nowrap">
+                    <td className="py-4 pr-4 text-right whitespace-nowrap">
                       {d.used_count}
                       {d.usage_limit !== null && <span className="opacity-60"> / {d.usage_limit}</span>}
                     </td>
-                    <td className="py-4 pr-4 font-light whitespace-nowrap opacity-80">
+                    <td className="py-4 pr-4 whitespace-nowrap opacity-80">
                       {formatDate(d.starts_at)} – {d.ends_at ? formatDate(d.ends_at) : "no end"}
                     </td>
                     <td className="py-4 pr-4">

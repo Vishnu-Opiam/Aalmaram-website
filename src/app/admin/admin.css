@@ -1,0 +1,114 @@
+/*
+ * Admin skin. Everything is scoped under .admin-shell so none of it leaks onto
+ * the storefront, which shares globals.css. The storefront's utilities
+ * (font-display, qlink, btn-night, preorder-input) are re-skinned here rather
+ * than rewritten screen by screen, so every admin page picks up the same look.
+ */
+
+.admin-shell {
+  --a-bg: #f5f4f0;
+  --a-surface: #ffffff;
+  --a-border: #e7e4dc;
+  --a-border-strong: #d6d2c7;
+  --a-ink: #1c2436;
+  --a-muted: #6b7182;
+  --a-hover: #f3f1ec;
+  --a-accent: #232f48;
+  --a-radius: 12px;
+
+  min-height: 100vh;
+  background: var(--a-bg);
+  color: var(--a-ink);
+  font-family: var(--font-admin), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+/* One typeface for the whole admin: the storefront's display serif reads as decoration here. */
+.admin-shell .font-body,
+.admin-shell .font-display {
+  font-family: var(--font-admin), system-ui, sans-serif;
+}
+.admin-shell .font-display { font-weight: 600; letter-spacing: -0.01em; }
+.admin-shell .italic { font-style: normal; }
+.admin-shell .font-light { font-weight: 400; }
+.admin-shell .display-tight { line-height: 1.15; letter-spacing: -0.02em; }
+
+/* Links: plain until hovered, instead of the storefront's permanent half-underline. */
+.admin-shell .qlink::after { transform: scaleX(0); bottom: -2px; transition-duration: .25s; }
+.admin-shell .qlink:hover::after { transform: scaleX(1); }
+
+/* Buttons */
+.admin-shell .btn-night {
+  border-radius: 8px;
+  letter-spacing: .02em;
+  text-transform: none;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(28, 36, 54, .12);
+}
+.admin-shell .btn-night:hover { transform: none; }
+
+/* Inputs: boxed fields rather than the storefront's underline. */
+.admin-shell .preorder-input {
+  margin-top: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--a-border-strong);
+  border-radius: 8px;
+  background: var(--a-surface);
+  font-size: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.admin-shell .preorder-input:focus {
+  outline: none;
+  border-color: var(--a-accent);
+  box-shadow: 0 0 0 3px rgba(35, 47, 72, .12);
+}
+.admin-shell textarea.preorder-input { min-height: 96px; }
+
+/* Tables: quiet header band, hoverable rows. */
+.admin-shell table thead tr { opacity: 1 !important; color: var(--a-muted); }
+.admin-shell table thead th { font-weight: 500; }
+.admin-shell table tbody tr { transition: background .12s; }
+.admin-shell table tbody tr:hover { background: var(--a-hover); }
+
+.admin-card {
+  background: var(--a-surface);
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  box-shadow: 0 1px 2px rgba(28, 36, 54, .04);
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--a-muted);
+  transition: background .12s, color .12s;
+}
+.admin-nav-link:hover { background: var(--a-hover); color: var(--a-ink); }
+.admin-nav-link[aria-current="page"] {
+  background: var(--a-accent);
+  color: #fff;
+  font-weight: 500;
+}
+.admin-nav-link svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Tables that sit directly in a card get a header band and edge padding. */
+.admin-card > table thead tr,
+.admin-card > table thead { background: var(--a-bg); }
+.admin-card > table th { font-size: 12px; font-weight: 500; padding-top: 10px; padding-bottom: 10px; }
+.admin-card > table th:first-child,
+.admin-card > table td:first-child { padding-left: 20px; }
+.admin-card > table th:last-child,
+.admin-card > table td:last-child { padding-right: 20px; }
+.admin-card > table td { padding-top: 12px; padding-bottom: 12px; }
+
+/* Checkboxes and radios in the admin accent. */
+.admin-shell input[type="checkbox"],
+.admin-shell input[type="radio"] { accent-color: var(--a-accent); width: 16px; height: 16px; }
+
+/* <details> summaries used as disclosure toggles */
+.admin-shell summary { font-size: 13px; font-weight: 500; }

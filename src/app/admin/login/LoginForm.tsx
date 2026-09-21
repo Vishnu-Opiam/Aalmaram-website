@@ -9,52 +9,41 @@ export default function LoginForm() {
   const [state, formAction, pending] = useActionState(signIn, INITIAL);
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <form action={formAction} className="w-full max-w-[360px]">
-        <div className="text-[10.5px] tracking-[.34em] font-body font-light opacity-60">AALMARAM</div>
-        <h1
-          className="mt-4 font-display font-black text-[30px] display-tight"
-          style={{ color: "var(--night)" }}
-        >
-          Admin
-        </h1>
-        <p className="mt-3 font-body font-light text-[14px]" style={{ color: "#2a3855" }}>
-          Sign in with your Aalmaram admin account.
-        </p>
+    <form action={formAction}>
+      <h1 className="text-[22px] font-semibold tracking-tight">Sign in</h1>
+      <p className="mt-1 text-[14px]" style={{ color: "var(--a-muted)" }}>
+        Use your Aalmaram admin account.
+      </p>
 
-        <input
-          type="email"
-          name="email"
-          autoComplete="email"
-          placeholder="Email"
-          autoFocus
-          required
-          className="preorder-input font-body text-[15px] mt-8 w-full"
-        />
+      <label className="mt-6 block text-[13px] font-medium">
+        Email
+        <input type="email" name="email" autoComplete="email" autoFocus required className="preorder-input w-full" />
+      </label>
 
+      <label className="mt-4 block text-[13px] font-medium">
+        Password
         <input
           type="password"
           name="password"
           autoComplete="current-password"
-          placeholder="Password"
           required
-          className="preorder-input font-body text-[15px] mt-3 w-full"
+          className="preorder-input w-full"
         />
+      </label>
 
-        {state.error && (
-          <p className="mt-3 text-[12.5px] font-body" style={{ color: "var(--spice)" }}>
-            {state.error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={pending}
-          className="btn-night w-full py-4 text-[12px] tracking-[.28em] font-body font-normal mt-6"
+      {state.error && (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg px-3 py-2 text-[13px]"
+          style={{ color: "var(--spice)", background: "rgba(164,66,44,.08)" }}
         >
-          {pending ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </main>
+          {state.error}
+        </p>
+      )}
+
+      <button type="submit" disabled={pending} className="btn-night w-full py-2.5 text-[14px] mt-6 disabled:opacity-60">
+        {pending ? "Signing in…" : "Sign in"}
+      </button>
+    </form>
   );
 }

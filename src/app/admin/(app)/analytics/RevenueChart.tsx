@@ -45,7 +45,7 @@ const compactRupees = (paise: number) => {
   return `₹${r.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 };
 
-export default function RevenueChart({ daily }: { daily: DailyPoint[] }) {
+export default function RevenueChart({ daily, table = true }: { daily: DailyPoint[]; table?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [hover, setHover] = useState<number | null>(null);
@@ -147,7 +147,7 @@ export default function RevenueChart({ daily }: { daily: DailyPoint[] }) {
           {/* The latest day is marked and labelled; everything else is in the tooltip and table. */}
           {last && (
             <>
-              <circle cx={geometry.x(lastIndex)} cy={geometry.y(last.net_paise)} r={6} fill="#eee0bf" />
+              <circle cx={geometry.x(lastIndex)} cy={geometry.y(last.net_paise)} r={6} fill="#fff" />
               <circle cx={geometry.x(lastIndex)} cy={geometry.y(last.net_paise)} r={4} fill={SERIES} />
             </>
           )}
@@ -163,7 +163,7 @@ export default function RevenueChart({ daily }: { daily: DailyPoint[] }) {
                 strokeWidth={1}
                 opacity={0.35}
               />
-              <circle cx={geometry.x(hover)} cy={geometry.y(point.net_paise)} r={6} fill="#eee0bf" />
+              <circle cx={geometry.x(hover)} cy={geometry.y(point.net_paise)} r={6} fill="#fff" />
               <circle cx={geometry.x(hover)} cy={geometry.y(point.net_paise)} r={4} fill={SERIES} />
             </>
           )}
@@ -171,16 +171,16 @@ export default function RevenueChart({ daily }: { daily: DailyPoint[] }) {
 
         {point && hover !== null && (
           <div
-            className="pointer-events-none absolute top-2 z-10 rounded px-3 py-2 font-body text-[12px] shadow-sm"
+            className="pointer-events-none absolute top-2 z-10 rounded-lg px-3 py-2 text-[12px] shadow-md"
             style={{
               left: Math.min(Math.max(geometry.x(hover) + 12, 0), width - 190),
-              background: "#fbf6ea",
+              background: "#fff",
               border: "1px solid rgba(35,47,72,.15)",
               color: INK,
               minWidth: 170,
             }}
           >
-            <div className="opacity-60 text-[11px]">{dayLabel(point.date, true)}</div>
+            <div className="opacity-60 text-[12px]">{dayLabel(point.date, true)}</div>
             <div className="mt-1 flex items-center gap-2">
               <span className="inline-block w-3" style={{ height: 2, background: SERIES }} />
               <strong className="font-normal text-[14px]">{formatPaise(point.net_paise)}</strong>
@@ -194,17 +194,18 @@ export default function RevenueChart({ daily }: { daily: DailyPoint[] }) {
         )}
       </div>
 
+      {table && (
       <details className="mt-4">
-        <summary className="cursor-pointer text-[11px] tracking-[.22em] font-body font-light opacity-70">SHOW AS A TABLE</summary>
+        <summary className="cursor-pointer text-[13px] opacity-70">Show as a table</summary>
         <div className="mt-3 overflow-x-auto max-h-[320px] overflow-y-auto">
-          <table className="w-full text-left font-body text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <table className="w-full text-left text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
             <thead>
-              <tr className="text-[10px] tracking-[.22em] opacity-60">
-                <th className="py-2 pr-4 font-normal">DAY</th>
-                <th className="py-2 pr-4 font-normal text-right">ORDERS</th>
-                <th className="py-2 pr-4 font-normal text-right">GROSS</th>
-                <th className="py-2 pr-4 font-normal text-right">REFUNDED</th>
-                <th className="py-2 font-normal text-right">NET</th>
+              <tr>
+                <th className="py-2 pr-4 font-normal">Day</th>
+                <th className="py-2 pr-4 font-normal text-right">Orders</th>
+                <th className="py-2 pr-4 font-normal text-right">Gross</th>
+                <th className="py-2 pr-4 font-normal text-right">Refunded</th>
+                <th className="py-2 font-normal text-right">Net</th>
               </tr>
             </thead>
             <tbody>
@@ -221,6 +222,7 @@ export default function RevenueChart({ daily }: { daily: DailyPoint[] }) {
           </table>
         </div>
       </details>
+      )}
     </div>
   );
 }

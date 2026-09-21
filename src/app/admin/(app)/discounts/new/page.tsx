@@ -18,7 +18,7 @@ export default async function NewDiscountPage() {
 
   return (
     <div>
-      <BackLink href="/admin/discounts">DISCOUNTS</BackLink>
+      <BackLink href="/admin/discounts">Discounts</BackLink>
       <div className="mt-5">
         <PageTitle>New code</PageTitle>
       </div>

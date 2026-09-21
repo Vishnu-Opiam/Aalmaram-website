@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import ClearCart from "./ClearCart";
+import OrderSummary, { ORDER_SUMMARY_SELECT } from "../OrderSummary";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import { formatPaise } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Order confirmed - Aalmaram" };
@@ -24,7 +24,7 @@ export default async function OrderConfirmedPage() {
   const { data: order } = await db
     .from("orders")
     .select(
-      "order_number, email, subtotal_paise, discount_paise, shipping_paise, total_paise, discount_code, shipping_address, placed_at, order_items ( title, variant_title, quantity, total_paise )"
+      ORDER_SUMMARY_SELECT
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -57,65 +57,7 @@ export default async function OrderConfirmedPage() {
           moment it ships, with a tracking link.
         </p>
 
-        <ul
-          className="mt-12 divide-y"
-          style={{ borderTop: "1px solid rgba(35,47,72,.12)", borderColor: "rgba(35,47,72,.12)" }}
-        >
-          {order.order_items.map((item, i) => (
-            <li key={i} className="py-5 flex justify-between gap-6">
-              <div>
-                <div className="font-display italic text-[18px]">{item.title}</div>
-                <div className="mt-1 text-[11.5px] tracking-[.2em] font-body font-light opacity-60">
-                  {item.variant_title.toUpperCase()} · ×{item.quantity}
-                </div>
-              </div>
-              <div className="font-display text-[18px] whitespace-nowrap">
-                {formatPaise(item.total_paise)}
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-8 space-y-3 text-[14px] font-body">
-          <Row label="Subtotal" value={formatPaise(order.subtotal_paise)} />
-          {order.discount_paise > 0 && (
-            <Row
-              label={`Discount${order.discount_code ? ` (${order.discount_code})` : ""}`}
-              value={`− ${formatPaise(order.discount_paise)}`}
-            />
-          )}
-          <Row
-            label="Shipping"
-            value={order.shipping_paise === 0 ? "Free" : formatPaise(order.shipping_paise)}
-          />
-          <div
-            className="flex items-baseline justify-between pt-4"
-            style={{ borderTop: "1px solid rgba(35,47,72,.15)" }}
-          >
-            <span className="text-[11px] tracking-[.28em] opacity-70">TOTAL PAID</span>
-            <span className="font-display text-[26px]">{formatPaise(order.total_paise)}</span>
-          </div>
-        </div>
-
-        <div className="mt-12">
-          <div className="text-[10px] tracking-[.26em] font-body opacity-65">SHIPPING TO</div>
-          <p className="mt-2 font-body font-light text-[14.5px] leading-relaxed">
-            {[
-              address.name,
-              address.line1,
-              address.line2,
-              [address.city, address.state].filter(Boolean).join(", "),
-              address.pincode,
-            ]
-              .filter(Boolean)
-              .map((line, i) => (
-                <span key={i}>
-                  {line}
-                  <br />
-                </span>
-              ))}
-          </p>
-        </div>
+        <OrderSummary order={order} />
 
         <Link
           href="/shop"
@@ -126,15 +68,6 @@ export default async function OrderConfirmedPage() {
       </main>
       <Footer />
     </>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <span className="font-light opacity-75">{label}</span>
-      <span>{value}</span>
-    </div>
   );
 }
 

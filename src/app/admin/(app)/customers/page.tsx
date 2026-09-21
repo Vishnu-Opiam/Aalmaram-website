@@ -48,17 +48,17 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
   return (
     <div>
       <PageTitle>Customers</PageTitle>
-      <p className="mt-2 text-[12.5px] font-body font-light opacity-60">
+      <p className="mt-2 text-[12.5px] opacity-60">
         Everyone who has ordered. Spend is what they paid, less refunds.
       </p>
 
-      <form action="/admin/customers" className="mt-8 flex flex-wrap items-end gap-5">
+      <form action="/admin/customers" className="mt-6 admin-card p-4 flex flex-wrap items-end gap-4">
         <label className="block flex-1 min-w-[220px]">
-          <span className="text-[10px] tracking-[.24em] font-body opacity-70">SEARCH</span>
+          <span className="text-[13px] font-medium">Search</span>
           <input type="search" name="q" defaultValue={q} placeholder="Name, email or phone" className={inputClass} />
         </label>
         <label className="block">
-          <span className="text-[10px] tracking-[.24em] font-body opacity-70">SORT</span>
+          <span className="text-[13px] font-medium">Sort</span>
           <select name="sort" defaultValue={sortKey} className={inputClass}>
             {Object.entries(SORTS).map(([key, s]) => (
               <option key={key} value={key}>
@@ -67,11 +67,11 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
             ))}
           </select>
         </label>
-        <label className="flex items-center gap-2 pb-3 text-[13px] font-body font-light">
+        <label className="flex items-center gap-2 pb-3 text-[13px]">
           <input type="checkbox" name="marketing" value="yes" defaultChecked={Boolean(marketing)} style={{ accentColor: "var(--night)" }} />
           Opted in only
         </label>
-        <button type="submit" className="btn-night px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal">
+        <button type="submit" className="btn-night px-4 py-2.5 text-[13px]">
           Filter
         </button>
       </form>
@@ -83,39 +83,39 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
       )}
 
       {!customers?.length ? (
-        <p className="mt-12 font-body font-light text-[14px] opacity-60">
+        <p className="mt-6 admin-card px-6 py-10 text-center text-[14px] opacity-70">
           {q || marketing ? "No customers match that." : "No customers yet. Each order creates one."}
         </p>
       ) : (
-        <div className="mt-10 overflow-x-auto">
-          <table className="w-full text-left font-body text-[13.5px]">
+        <div className="mt-4 admin-card overflow-x-auto">
+          <table className="w-full text-left text-[13.5px]">
             <thead>
-              <tr className="text-[10px] tracking-[.22em] opacity-60">
-                <th className="py-3 pr-4 font-normal">NAME</th>
-                <th className="py-3 pr-4 font-normal">EMAIL</th>
-                <th className="py-3 pr-4 font-normal text-right">ORDERS</th>
-                <th className="py-3 pr-4 font-normal text-right">SPENT</th>
-                <th className="py-3 pr-4 font-normal">MARKETING</th>
-                <th className="py-3 font-normal">SINCE</th>
+              <tr>
+                <th className="py-3 pr-4 font-normal">Name</th>
+                <th className="py-3 pr-4 font-normal">Email</th>
+                <th className="py-3 pr-4 font-normal text-right">Orders</th>
+                <th className="py-3 pr-4 font-normal text-right">Spent</th>
+                <th className="py-3 pr-4 font-normal">Marketing</th>
+                <th className="py-3 font-normal">Since</th>
               </tr>
             </thead>
             <tbody>
               {customers.map((c) => (
-                <tr key={c.id} style={{ borderTop: "1px solid rgba(35,47,72,.1)" }}>
+                <tr key={c.id} style={{ borderTop: "1px solid var(--a-border)" }}>
                   <td className="py-4 pr-4">
-                    <Link href={`/admin/customers/${c.id}`} className="font-display italic text-[17px] qlink">
+                    <Link href={`/admin/customers/${c.id}`} className="font-semibold text-[14px] qlink">
                       {[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}
                     </Link>
                   </td>
-                  <td className="py-4 pr-4 font-light">{c.email}</td>
-                  <td className="py-4 pr-4 text-right font-light">{c.total_orders}</td>
-                  <td className="py-4 pr-4 text-right font-display text-[16px] whitespace-nowrap">
+                  <td className="py-4 pr-4">{c.email}</td>
+                  <td className="py-4 pr-4 text-right">{c.total_orders}</td>
+                  <td className="py-4 pr-4 text-right font-semibold text-[14px] whitespace-nowrap">
                     {formatPaise(Number(c.total_spent_paise))}
                   </td>
                   <td className="py-4 pr-4">
-                    {c.accepts_marketing ? <Pill tone="good">OPTED IN</Pill> : <span className="opacity-40">—</span>}
+                    {c.accepts_marketing ? <Pill tone="good">Opted in</Pill> : <span className="opacity-40">—</span>}
                   </td>
-                  <td className="py-4 font-light opacity-80 whitespace-nowrap">{formatDate(c.created_at)}</td>
+                  <td className="py-4 opacity-80 whitespace-nowrap">{formatDate(c.created_at)}</td>
                 </tr>
               ))}
             </tbody>

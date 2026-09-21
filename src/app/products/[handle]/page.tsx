@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import AddToCartButton from "@/components/AddToCartButton";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Markdown from "@/components/Markdown";
+import ProductBuyBox from "@/components/ProductBuyBox";
 import Toast from "@/components/Toast";
 import { formatPaise, getProductByHandle, getShippingSettings } from "@/lib/commerce";
 
@@ -33,11 +33,6 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
   if (!product) notFound();
 
   const variant = product.variants[0];
-  const inStock = Boolean(variant && variant.inventoryQuantity > 0);
-  const saving =
-    variant?.compareAtPaise && variant.compareAtPaise > variant.pricePaise
-      ? variant.compareAtPaise - variant.pricePaise
-      : null;
 
   return (
     <>
@@ -81,38 +76,12 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
               {product.title}
             </h1>
 
-            <div className="mt-8 flex items-baseline gap-4">
-              <span className="font-display text-[34px] text-night">
-                {variant ? formatPaise(variant.pricePaise) : "—"}
-              </span>
-              {variant?.compareAtPaise ? (
-                <span className="font-body font-light text-[17px] line-through opacity-50">
-                  {formatPaise(variant.compareAtPaise)}
-                </span>
-              ) : null}
-              {saving ? (
-                <span
-                  className="text-[11px] tracking-[.22em] font-body"
-                  style={{ color: "var(--kathakali)" }}
-                >
-                  SAVE {formatPaise(saving)}
-                </span>
-              ) : null}
-            </div>
+            <ProductBuyBox product={product} />
 
             <Markdown
               source={product.descriptionMd}
               className="mt-8 font-body font-light leading-loose text-[15.5px] max-w-[52ch]"
             />
-
-            <div className="mt-10 flex flex-wrap items-center gap-6">
-              <AddToCartButton product={product} />
-              {inStock && variant && variant.inventoryQuantity <= 5 && (
-                <span className="text-[12px] font-body font-light" style={{ color: "var(--spice)" }}>
-                  Only {variant.inventoryQuantity} left
-                </span>
-              )}
-            </div>
 
             <dl className="mt-12 grid grid-cols-2 gap-y-6 gap-x-8 text-[13px] font-body font-light">
               <div>

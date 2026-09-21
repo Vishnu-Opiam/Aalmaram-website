@@ -12,15 +12,15 @@ type EventRow = { id: string; title: string; date: string; location: string; lin
 
 function EventTable({ rows, isPast }: { rows: EventRow[]; isPast: boolean }) {
   return (
-    <div className="mt-5 overflow-x-auto">
-      <table className="w-full text-left font-body text-[13.5px]">
+    <div className="mt-5 admin-card overflow-x-auto">
+      <table className="w-full text-left text-[13.5px]">
         <thead>
-          <tr className="text-[10px] tracking-[.22em] opacity-60">
-            <th className="py-3 pr-4 font-normal">DATE</th>
-            <th className="py-3 pr-4 font-normal">EVENT</th>
-            <th className="py-3 pr-4 font-normal">WHERE</th>
-            <th className="py-3 pr-4 font-normal">SIGN-UP</th>
-            <th className="py-3 pr-4 font-normal">STATUS</th>
+          <tr>
+            <th className="py-3 pr-4 font-normal">Date</th>
+            <th className="py-3 pr-4 font-normal">Event</th>
+            <th className="py-3 pr-4 font-normal">Where</th>
+            <th className="py-3 pr-4 font-normal">Sign-up</th>
+            <th className="py-3 pr-4 font-normal">Status</th>
             <th className="py-3 font-normal" />
           </tr>
         </thead>
@@ -33,15 +33,15 @@ function EventTable({ rows, isPast }: { rows: EventRow[]; isPast: boolean }) {
                   {e.title}
                 </Link>
               </td>
-              <td className="py-3 pr-4 font-light opacity-80">{e.location || "—"}</td>
-              <td className="py-3 pr-4 font-light opacity-80">{e.link ? "External link" : "On the site"}</td>
+              <td className="py-3 pr-4 opacity-80">{e.location || "—"}</td>
+              <td className="py-3 pr-4 opacity-80">{e.link ? "External link" : "On the site"}</td>
               <td className="py-3 pr-4">
                 {isPast ? (
-                  <Pill tone="quiet">PAST</Pill>
+                  <Pill tone="quiet">Past</Pill>
                 ) : e.published ? (
-                  <Pill tone="good">LIVE</Pill>
+                  <Pill tone="good">Live</Pill>
                 ) : (
-                  <Pill tone="warn">HIDDEN</Pill>
+                  <Pill tone="warn">Hidden</Pill>
                 )}
               </td>
               <td className="py-3 text-right">
@@ -49,8 +49,8 @@ function EventTable({ rows, isPast }: { rows: EventRow[]; isPast: boolean }) {
                   <form action={setEventPublished}>
                     <input type="hidden" name="id" value={e.id} />
                     <input type="hidden" name="published" value={String(!e.published)} />
-                    <button type="submit" className="qlink text-[11px] tracking-[.2em] font-body font-light">
-                      {e.published ? "HIDE" : "PUBLISH"}
+                    <button type="submit" className="qlink text-[12px]">
+                      {e.published ? "Hide" : "Publish"}
                     </button>
                   </form>
                 )}
@@ -82,7 +82,7 @@ export default async function AdminEventsPage() {
         aside={
           <Link
             href="/admin/events/new"
-            className="btn-night px-7 py-3 text-[12px] tracking-[.24em] font-body font-normal"
+            className="btn-night px-4 py-2.5 text-[13px]"
           >
             New event
           </Link>
@@ -90,7 +90,7 @@ export default async function AdminEventsPage() {
       >
         Events
       </PageTitle>
-      <p className="mt-3 text-[13px] font-body font-light opacity-60 max-w-[62ch]">
+      <p className="mt-3 text-[13px] opacity-60 max-w-[62ch]">
         Upcoming published events appear in the Events section of the homepage.
       </p>
 
@@ -101,19 +101,19 @@ export default async function AdminEventsPage() {
       )}
 
       {!events?.length ? (
-        <p className="mt-12 font-body font-light text-[14px] opacity-60">No events yet.</p>
+        <p className="mt-6 admin-card px-6 py-10 text-center text-[14px] opacity-70">No events yet.</p>
       ) : (
         <>
-          <section className="mt-10">
+          <section className="admin-card p-5 sm:p-6 mt-4">
             <SectionTitle>Coming up</SectionTitle>
             {upcoming.length ? (
               <EventTable rows={upcoming} isPast={false} />
             ) : (
-              <p className="mt-4 font-body font-light text-[13.5px] opacity-60">Nothing on the calendar.</p>
+              <p className="mt-4 text-[13.5px] opacity-60">Nothing on the calendar.</p>
             )}
           </section>
           {past.length > 0 && (
-            <section className="mt-14">
+            <section className="admin-card p-5 sm:p-6 mt-4">
               <SectionTitle>Past</SectionTitle>
               <EventTable rows={past} isPast />
             </section>

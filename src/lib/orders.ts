@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sendOrderConfirmation, sendOutOfStockRefund } from "@/lib/email";
+import { siteUrl } from "@/lib/env";
 import { kickOutbox } from "@/lib/outbox";
 import { issueRefund, type IssueRefundResult } from "@/lib/refunds";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -137,7 +138,7 @@ async function sendConfirmation(orderId: string): Promise<{ sent: boolean; error
   const { data: order } = await db
     .from("orders")
     .select(
-      "id, order_number, email, subtotal_paise, discount_paise, shipping_paise, total_paise, discount_code, shipping_address, order_items ( title, variant_title, quantity, total_paise )"
+      "id, order_number, email, subtotal_paise, discount_paise, shipping_paise, tax_paise, total_paise, discount_code, shipping_address, placed_at, created_at, view_token, order_items ( title, variant_title, quantity, total_paise )"
     )
     .eq("id", orderId)
     .single();
@@ -149,6 +150,8 @@ async function sendConfirmation(orderId: string): Promise<{ sent: boolean; error
   const { sent, error } = await sendOrderConfirmation(order.email, {
     orderNumber: order.order_number,
     name: address.name ?? "",
+    placedAt: order.placed_at ?? order.created_at,
+    viewUrl: `${siteUrl()}/order/view/${order.view_token}`,
     items: order.order_items.map((item) => ({
       title: item.title,
       variantTitle: item.variant_title,
@@ -159,6 +162,7 @@ async function sendConfirmation(orderId: string): Promise<{ sent: boolean; error
     discountPaise: order.discount_paise,
     discountCode: order.discount_code,
     shippingPaise: order.shipping_paise,
+    taxPaise: order.tax_paise,
     totalPaise: order.total_paise,
     address,
   });

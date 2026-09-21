@@ -32,11 +32,11 @@ export async function signIn(_prev: LoginState, formData: FormData): Promise<Log
   const admin = createAdminClient();
   const { data: adminUser } = await admin
     .from("admin_users")
-    .select("id")
+    .select("id, revoked_at")
     .eq("email", email)
     .maybeSingle();
 
-  if (!adminUser && !adminAllowlist().includes(email)) {
+  if (adminUser?.revoked_at || (!adminUser && !adminAllowlist().includes(email))) {
     await supabase.auth.signOut();
     return { error: "That account doesn't have admin access." };
   }
@@ -85,8 +85,8 @@ export async function acceptInvite(_prev: LoginState, formData: FormData): Promi
 
   const email = data.user.email.toLowerCase();
   const admin = createAdminClient();
-  const { data: adminUser } = await admin.from("admin_users").select("id").eq("email", email).maybeSingle();
-  if (!adminUser && !adminAllowlist().includes(email)) {
+  const { data: adminUser } = await admin.from("admin_users").select("id, revoked_at").eq("email", email).maybeSingle();
+  if (adminUser?.revoked_at || (!adminUser && !adminAllowlist().includes(email))) {
     await supabase.auth.signOut();
     return { error: "That account doesn't have admin access any more." };
   }

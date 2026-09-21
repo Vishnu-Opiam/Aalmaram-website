@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackLink } from "../../ui";
 import ProductForm from "../ProductForm";
 import { requireAdmin } from "@/lib/admin-auth";
 
@@ -9,16 +9,14 @@ export default async function NewProductPage() {
 
   return (
     <div>
-      <Link href="/admin/products" className="qlink text-[11px] tracking-[.26em] font-body font-light">
-        ← PRODUCTS
-      </Link>
+      <BackLink href="/admin/products">Products</BackLink>
       <h1
-        className="mt-5 font-display font-black text-[34px] display-tight"
+        className="mt-5 font-semibold text-[26px]"
         style={{ color: "var(--night)" }}
       >
         New product
       </h1>
-      <p className="mt-3 font-body font-light text-[14px] opacity-70">
+      <p className="mt-3 text-[14px] opacity-70">
         Images can be added once it exists. It stays a draft until you set it active.
       </p>
 
@@ -31,12 +29,16 @@ export default async function NewProductPage() {
           descriptionMd: "",
           status: "draft",
           tags: "",
+          productType: "",
+          vendor: "",
           hsnCode: "4901",
           seoTitle: "",
           seoDescription: "",
           price: "",
           compareAt: "",
+          cost: "",
           sku: "",
+          barcode: "",
           inventoryQuantity: "0",
           weightGrams: "0",
           lengthCm: "0",

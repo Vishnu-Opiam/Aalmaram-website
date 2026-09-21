@@ -1,10 +1,10 @@
-import { requireOwner } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
 import { isEmailConfigured } from "@/lib/email";
 import { formatDateTime } from "@/lib/format";
 import { OUTBOX_TOPICS, resolveWebhookUrls, topicEnvName } from "@/lib/outbox";
 import { isShiprocketConfigured } from "@/lib/shiprocket";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Pill, SectionTitle, type Tone } from "../../ui";
+import { Pill, SectionTitle, type Tone, sentence } from "../../ui";
 import { TestWebhookButton, WebhooksForm } from "../SettingsForms";
 import { retryOutboxRow } from "../actions";
 
@@ -26,9 +26,9 @@ function KeyRow({ label, ok, detail }: { label: string; ok: boolean; detail: str
     <tr className="border-t border-black/10 align-top">
       <td className="py-3 pr-4 whitespace-nowrap">{label}</td>
       <td className="py-3 pr-4">
-        <Pill tone={ok ? "good" : "warn"}>{ok ? "SET" : "MISSING"}</Pill>
+        <Pill tone={ok ? "good" : "warn"}>{ok ? "Set" : "Missing"}</Pill>
       </td>
-      <td className="py-3 font-light opacity-75">{detail}</td>
+      <td className="py-3 opacity-75">{detail}</td>
     </tr>
   );
 }
@@ -38,7 +38,7 @@ export default async function IntegrationsPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  await requireOwner();
+  await requireAdmin();
   const { status: statusFilter } = await searchParams;
 
   const db = createAdminClient();
@@ -65,8 +65,8 @@ export default async function IntegrationsPage({
   const razorpayMode = keyId.startsWith("rzp_live_") ? "LIVE keys" : keyId.startsWith("rzp_test_") ? "test keys" : "unrecognised key";
 
   return (
-    <div className="space-y-16">
-      <section className="max-w-[860px]">
+    <div className="space-y-4">
+      <section className="admin-card p-5 sm:p-6 max-w-[860px]">
         <SectionTitle hint="Where store events go. See docs/custom-commerce/EVENTS.md for the payloads and the n8n setup.">
           n8n webhooks
         </SectionTitle>
@@ -82,14 +82,14 @@ export default async function IntegrationsPage({
         />
 
         <div className="mt-10">
-          <span className="text-[10px] tracking-[.24em] font-body opacity-70">SEND A TEST</span>
-          <p className="mt-1 text-[11.5px] font-body font-light opacity-55">
+          <span className="text-[13px] font-medium">Send a test</span>
+          <p className="mt-1 text-[12.5px] opacity-55">
             A sample marked <code>event.test: true</code>, order TEST0000, straight to the URL in use.
           </p>
           <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {OUTBOX_TOPICS.map((topic) => (
               <div key={topic} className="p-4 rounded" style={{ background: "rgba(35,47,72,.04)" }}>
-                <div className="text-[12px] font-body mb-2">
+                <div className="text-[12px] mb-2">
                   {topic}{" "}
                   <span className="opacity-50">
                     {urls[topic].source === "settings" ? "· saved URL" : urls[topic].source === "env" ? "· env URL" : "· no URL"}
@@ -102,11 +102,11 @@ export default async function IntegrationsPage({
         </div>
       </section>
 
-      <section>
+      <section className="admin-card p-5 sm:p-6">
         <SectionTitle hint="The last 50 events. Delivered within seconds normally; retried with backoff when n8n is down.">
           Event queue
         </SectionTitle>
-        <div className="mt-4 flex gap-6 text-[11px] tracking-[.2em] font-body font-light">
+        <div className="mt-4 flex gap-6 text-[12px]">
           {["all", "pending", "failed", "sent"].map((s) => (
             <a
               key={s}
@@ -114,22 +114,22 @@ export default async function IntegrationsPage({
               className="qlink"
               style={{ opacity: (statusFilter ?? "all") === s ? 1 : 0.55 }}
             >
-              {s.toUpperCase()}
+              {sentence(s)}
             </a>
           ))}
         </div>
         {rows.length === 0 ? (
-          <p className="mt-6 font-body font-light text-[13.5px] opacity-60">Nothing here.</p>
+          <p className="mt-6 text-[13.5px] opacity-60">Nothing here.</p>
         ) : (
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-left font-body text-[13px]">
+          <div className="mt-5 admin-card overflow-x-auto">
+            <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="text-[10px] tracking-[.22em] opacity-60">
-                  <th className="py-3 pr-4 font-normal">WHEN</th>
-                  <th className="py-3 pr-4 font-normal">EVENT</th>
-                  <th className="py-3 pr-4 font-normal">ABOUT</th>
-                  <th className="py-3 pr-4 font-normal">STATUS</th>
-                  <th className="py-3 pr-4 font-normal">DETAIL</th>
+                <tr>
+                  <th className="py-3 pr-4 font-normal">When</th>
+                  <th className="py-3 pr-4 font-normal">Event</th>
+                  <th className="py-3 pr-4 font-normal">About</th>
+                  <th className="py-3 pr-4 font-normal">Status</th>
+                  <th className="py-3 pr-4 font-normal">Detail</th>
                   <th className="py-3 font-normal" />
                 </tr>
               </thead>
@@ -142,7 +142,7 @@ export default async function IntegrationsPage({
                     <tr key={row.id} className="border-t border-black/10 align-top">
                       <td className="py-3 pr-4 whitespace-nowrap">{formatDateTime(row.created_at)}</td>
                       <td className="py-3 pr-4">{row.topic}</td>
-                      <td className="py-3 pr-4 font-light">
+                      <td className="py-3 pr-4">
                         {p.order_id ? (
                           <a href={`/admin/orders/${String(p.order_id)}`} className="qlink">
                             {about || "order"}
@@ -152,9 +152,9 @@ export default async function IntegrationsPage({
                         )}
                       </td>
                       <td className="py-3 pr-4">
-                        <Pill tone={STATUS_TONE[row.status] ?? "quiet"}>{row.status.toUpperCase()}</Pill>
+                        <Pill tone={STATUS_TONE[row.status] ?? "quiet"}>{sentence(row.status)}</Pill>
                       </td>
-                      <td className="py-3 pr-4 font-light opacity-75 max-w-[420px]">
+                      <td className="py-3 pr-4 opacity-75 max-w-[420px]">
                         {row.status === "sent"
                           ? `${row.sent_at ? formatDateTime(row.sent_at) : ""}${row.last_error ? ` · not sent: ${row.last_error}` : ""}`
                           : !configured && row.status === "pending"
@@ -167,8 +167,8 @@ export default async function IntegrationsPage({
                         {row.status === "failed" || (row.status === "pending" && row.attempts > 0) ? (
                           <form action={retryOutboxRow}>
                             <input type="hidden" name="id" value={row.id} />
-                            <button type="submit" className="qlink text-[11px] tracking-[.2em] font-body font-light">
-                              RETRY NOW
+                            <button type="submit" className="qlink text-[12px]">
+                              Retry now
                             </button>
                           </form>
                         ) : null}
@@ -182,12 +182,12 @@ export default async function IntegrationsPage({
         )}
       </section>
 
-      <section className="max-w-[860px]">
+      <section className="admin-card p-5 sm:p-6 max-w-[860px]">
         <SectionTitle hint="Secrets live in the server environment (Vercel → Settings → Environment Variables), never here. This only says whether each is present.">
           Keys
         </SectionTitle>
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full text-left font-body text-[13px]">
+        <div className="mt-5 admin-card overflow-x-auto">
+          <table className="w-full text-left text-[13px]">
             <tbody>
               <KeyRow label="Razorpay keys" ok={Boolean(keyId && process.env.RAZORPAY_KEY_SECRET)} detail={keyId ? `Using ${razorpayMode}.` : "RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET"} />
               <KeyRow label="Razorpay webhook secret" ok={Boolean(process.env.RAZORPAY_WEBHOOK_SECRET)} detail="Without it, a payment whose browser never returns is not turned into an order." />

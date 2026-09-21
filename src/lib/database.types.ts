@@ -48,6 +48,8 @@ export type Database = {
           invited_by: string | null
           last_login_at: string | null
           name: string
+          revoked_at: string | null
+          revoked_by: string | null
           role: string
           updated_at: string
           user_id: string | null
@@ -60,6 +62,8 @@ export type Database = {
           invited_by?: string | null
           last_login_at?: string | null
           name?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
           role?: string
           updated_at?: string
           user_id?: string | null
@@ -72,6 +76,8 @@ export type Database = {
           invited_by?: string | null
           last_login_at?: string | null
           name?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
           role?: string
           updated_at?: string
           user_id?: string | null
@@ -530,6 +536,7 @@ export type Database = {
           tax_paise: number
           total_paise: number
           updated_at: string
+          view_token: string
         }
         Insert: {
           billing_address?: Json | null
@@ -560,6 +567,7 @@ export type Database = {
           tax_paise?: number
           total_paise?: number
           updated_at?: string
+          view_token?: string
         }
         Update: {
           billing_address?: Json | null
@@ -590,6 +598,7 @@ export type Database = {
           tax_paise?: number
           total_paise?: number
           updated_at?: string
+          view_token?: string
         }
         Relationships: [
           {
@@ -638,8 +647,10 @@ export type Database = {
       }
       product_variants: {
         Row: {
+          barcode: string | null
           breadth_cm: number
           compare_at_paise: number | null
+          cost_paise: number | null
           created_at: string
           height_cm: number
           id: string
@@ -654,8 +665,10 @@ export type Database = {
           weight_grams: number
         }
         Insert: {
+          barcode?: string | null
           breadth_cm?: number
           compare_at_paise?: number | null
+          cost_paise?: number | null
           created_at?: string
           height_cm?: number
           id?: string
@@ -670,8 +683,10 @@ export type Database = {
           weight_grams?: number
         }
         Update: {
+          barcode?: string | null
           breadth_cm?: number
           compare_at_paise?: number | null
+          cost_paise?: number | null
           created_at?: string
           height_cm?: number
           id?: string
@@ -702,6 +717,7 @@ export type Database = {
           handle: string
           hsn_code: string
           id: string
+          product_type: string
           requires_shipping: boolean
           seo_description: string | null
           seo_title: string | null
@@ -711,6 +727,7 @@ export type Database = {
           tags: string[]
           title: string
           updated_at: string
+          vendor: string
         }
         Insert: {
           created_at?: string
@@ -718,6 +735,7 @@ export type Database = {
           handle: string
           hsn_code?: string
           id?: string
+          product_type?: string
           requires_shipping?: boolean
           seo_description?: string | null
           seo_title?: string | null
@@ -727,6 +745,7 @@ export type Database = {
           tags?: string[]
           title: string
           updated_at?: string
+          vendor?: string
         }
         Update: {
           created_at?: string
@@ -734,6 +753,7 @@ export type Database = {
           handle?: string
           hsn_code?: string
           id?: string
+          product_type?: string
           requires_shipping?: boolean
           seo_description?: string | null
           seo_title?: string | null
@@ -743,6 +763,7 @@ export type Database = {
           tags?: string[]
           title?: string
           updated_at?: string
+          vendor?: string
         }
         Relationships: []
       }
@@ -1158,6 +1179,10 @@ export type Database = {
       retry_outbox: {
         Args: { p_actor: string; p_id: string }
         Returns: undefined
+      }
+      set_admin_access: {
+        Args: { p_actor: string; p_admin_id: string; p_revoke: boolean }
+        Returns: Json
       }
       set_admin_role: {
         Args: { p_actor: string; p_admin_id: string; p_role: string }

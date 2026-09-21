@@ -21,7 +21,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <label className="block">
       <span className={labelClass}>{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[11.5px] font-body font-light opacity-55">{hint}</span>}
+      {hint && <span className="mt-1 block text-[12.5px] opacity-55">{hint}</span>}
     </label>
   );
 }
@@ -43,11 +43,11 @@ export default function EventForm({ mode, values }: { mode: "create" | "edit"; v
         <Field label="DATE *" hint="The day it happens. It leaves the homepage the day after.">
           <input name="date" type="date" defaultValue={values.date} required className={inputClass} />
         </Field>
-        <Field label="LOCATION" hint="e.g. Kochi Biennale Pavilion, Fort Kochi">
+        <Field label="Location" hint="e.g. Kochi Biennale Pavilion, Fort Kochi">
           <input name="location" defaultValue={values.location} maxLength={200} className={inputClass} />
         </Field>
         <div className="md:col-span-2">
-          <Field label="DESCRIPTION" hint="A sentence or two. Shown under the title.">
+          <Field label="Description" hint="A sentence or two. Shown under the title.">
             <textarea
               name="description"
               defaultValue={values.description}
@@ -59,13 +59,13 @@ export default function EventForm({ mode, values }: { mode: "create" | "edit"; v
         </div>
         <div className="md:col-span-2">
           <Field
-            label="LINK"
+            label="Link"
             hint="Optional. With a link, the event opens it. Without one, visitors register on the site and n8n sends the confirmation and a reminder."
           >
             <input name="link" type="url" defaultValue={values.link} placeholder="https://" className={inputClass} />
           </Field>
         </div>
-        <label className="flex items-center gap-3 text-[13.5px] font-body font-light md:col-span-2">
+        <label className="flex items-center gap-3 text-[13.5px] md:col-span-2">
           <input
             type="checkbox"
             name="published"
@@ -79,7 +79,7 @@ export default function EventForm({ mode, values }: { mode: "create" | "edit"; v
       <button
         type="submit"
         disabled={pending}
-        className="btn-night px-10 py-4 text-[12px] tracking-[.26em] font-body font-normal"
+        className="btn-night px-4 py-2.5 text-[13px]"
       >
         {pending ? "Saving…" : mode === "create" ? "Add event" : "Save changes"}
       </button>
@@ -101,10 +101,10 @@ export function DeleteEventButton({ id }: { id: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="qlink text-[11.5px] tracking-[.22em] font-body font-light"
+        className="qlink text-[12.5px]"
         style={{ color: "var(--spice)" }}
       >
-        DELETE
+        Delete
       </button>
       <Notice error={state.error} />
     </form>

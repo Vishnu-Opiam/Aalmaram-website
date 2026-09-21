@@ -58,7 +58,7 @@ export function RefundPanel({
 
       <div className="grid md:grid-cols-2 gap-5">
         <label className="block">
-          <span className={labelClass}>AMOUNT (₹)</span>
+          <span className={labelClass}>Amount (₹)</span>
           <input
             name="amount"
             required
@@ -68,17 +68,17 @@ export function RefundPanel({
           />
         </label>
         <label className="block">
-          <span className={labelClass}>REASON</span>
+          <span className={labelClass}>Reason</span>
           <input name="reason" placeholder="Damaged in transit" className={inputClass} />
         </label>
       </div>
 
       {lines.some((l) => l.available > 0) && (
         <fieldset>
-          <legend className={labelClass}>PUT BACK ON THE SHELF</legend>
+          <legend className={labelClass}>Put back on the shelf</legend>
           <div className="mt-3 space-y-3">
             {lines.map((line) => (
-              <label key={line.id} className="flex items-center gap-4 text-[13px] font-body font-light">
+              <label key={line.id} className="flex items-center gap-4 text-[13px]">
                 <input
                   name={`restock_${line.id}`}
                   type="number"
@@ -86,7 +86,7 @@ export function RefundPanel({
                   max={line.available}
                   defaultValue={0}
                   disabled={line.available === 0}
-                  className="preorder-input font-body text-[14px] w-20"
+                  className="preorder-input text-[14px] w-20"
                 />
                 <span>
                   {line.title}
@@ -108,7 +108,7 @@ export function RefundPanel({
       <button
         type="submit"
         disabled={pending}
-        className="btn-night px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal"
+        className="btn-night px-4 py-2.5 text-[13px]"
       >
         {pending ? "Refunding…" : "Refund"}
       </button>
@@ -138,10 +138,10 @@ export function CancelPanel({ orderId, remainingPaise }: { orderId: string; rema
       </SectionTitle>
       <input type="hidden" name="order_id" value={orderId} />
       <label className="block">
-        <span className={labelClass}>REASON</span>
+        <span className={labelClass}>Reason</span>
         <input name="reason" placeholder="Customer asked to cancel" className={inputClass} />
       </label>
-      <label className="flex items-center gap-3 text-[13px] font-body font-light">
+      <label className="flex items-center gap-3 text-[13px]">
         <input type="checkbox" name="restock" defaultChecked style={{ accentColor: "var(--night)" }} />
         Put every copy back on the shelf
       </label>
@@ -151,7 +151,7 @@ export function CancelPanel({ orderId, remainingPaise }: { orderId: string; rema
       <button
         type="submit"
         disabled={pending}
-        className="px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal rounded-full"
+        className="px-7 py-3 text-[12.5px] font-normal rounded-full"
         style={{ border: "1px solid var(--spice)", color: "var(--spice)" }}
       >
         {pending ? "Cancelling…" : remainingPaise > 0 ? `Cancel and refund ${formatPaise(remainingPaise)}` : "Cancel order"}
@@ -167,8 +167,8 @@ export function FinishRefundButton({ refundId, label = "Check with Razorpay" }: 
   return (
     <form action={formAction} className="space-y-2">
       <input type="hidden" name="refund_id" value={refundId} />
-      <button type="submit" disabled={pending} className="qlink text-[11px] tracking-[.2em] font-body">
-        {pending ? "CHECKING…" : label.toUpperCase()}
+      <button type="submit" disabled={pending} className="qlink text-[12px]">
+        {pending ? "Checking…" : label}
       </button>
       <Notice error={state.error} ok={state.ok} />
     </form>
@@ -182,8 +182,8 @@ export function ResendConfirmationButton({ orderId }: { orderId: string }) {
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="order_id" value={orderId} />
-      <button type="submit" disabled={pending} className="qlink text-[11.5px] tracking-[.22em] font-body font-light">
-        {pending ? "SENDING…" : "RESEND CONFIRMATION EMAIL"}
+      <button type="submit" disabled={pending} className="qlink text-[12.5px]">
+        {pending ? "Sending…" : "Resend confirmation email"}
       </button>
       <Notice error={state.error} ok={state.ok} />
     </form>
@@ -215,19 +215,19 @@ export function AddressForm({ orderId, values }: { orderId: string; values: Addr
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="order_id" value={orderId} />
       <div className="grid md:grid-cols-2 gap-5">
-        {field("name", "NAME", true)}
-        {field("phone", "PHONE", true)}
-        {field("line1", "ADDRESS", true)}
-        {field("line2", "APARTMENT, LANDMARK", true, false)}
-        {field("city", "CITY")}
-        {field("state", "STATE")}
-        {field("pincode", "PIN CODE")}
+        {field("name", "Name", true)}
+        {field("phone", "Phone", true)}
+        {field("line1", "Address", true)}
+        {field("line2", "Apartment, landmark", true, false)}
+        {field("city", "City")}
+        {field("state", "State")}
+        {field("pincode", "PIN code")}
       </div>
       <Notice error={state.error} ok={state.ok} />
       <button
         type="submit"
         disabled={pending}
-        className="btn-night px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal"
+        className="btn-night px-4 py-2.5 text-[13px]"
       >
         {pending ? "Saving…" : "Save address"}
       </button>
@@ -250,8 +250,8 @@ export function OrderNotesForm({ orderId, notes }: { orderId: string; notes: str
         className={inputClass}
       />
       <Notice error={state.error} ok={state.ok} />
-      <button type="submit" disabled={pending} className="qlink text-[11.5px] tracking-[.22em] font-body font-light">
-        {pending ? "SAVING…" : "SAVE NOTES"}
+      <button type="submit" disabled={pending} className="qlink text-[12.5px]">
+        {pending ? "Saving…" : "Save notes"}
       </button>
     </form>
   );

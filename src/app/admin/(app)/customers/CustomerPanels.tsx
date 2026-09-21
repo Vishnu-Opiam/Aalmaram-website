@@ -22,7 +22,7 @@ export function MarketingToggle({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="accepts_marketing" value={accepts ? "false" : "true"} />
-      <p className="text-[13.5px] font-body font-light">
+      <p className="text-[13.5px]">
         {accepts ? (
           <>
             Opted in{consentAt ? ` on ${formatDateTime(consentAt)}` : ""}. They can receive the newsletter.
@@ -33,7 +33,7 @@ export function MarketingToggle({
       </p>
       {!accepts && (
         <label className="block">
-          <span className={labelClass}>HOW DID THEY AGREE?</span>
+          <span className={labelClass}>How did they agree?</span>
           <input
             name="source"
             placeholder="e.g. replied to the launch email asking to be added"
@@ -42,8 +42,8 @@ export function MarketingToggle({
         </label>
       )}
       <Notice error={state.error} ok={state.ok} />
-      <button type="submit" disabled={pending} className="qlink text-[11.5px] tracking-[.22em] font-body font-light">
-        {pending ? "SAVING…" : accepts ? "OPT THEM OUT" : "MARK AS OPTED IN"}
+      <button type="submit" disabled={pending} className="qlink text-[12.5px]">
+        {pending ? "Saving…" : accepts ? "Opt them out" : "Mark as opted in"}
       </button>
     </form>
   );
@@ -56,8 +56,8 @@ export function CustomerNotesForm({ id, notes }: { id: string; notes: string }) 
       <input type="hidden" name="id" value={id} />
       <textarea name="notes" defaultValue={notes} rows={4} placeholder="Only the team sees these." className={inputClass} />
       <Notice error={state.error} ok={state.ok} />
-      <button type="submit" disabled={pending} className="qlink text-[11.5px] tracking-[.22em] font-body font-light">
-        {pending ? "SAVING…" : "SAVE NOTES"}
+      <button type="submit" disabled={pending} className="qlink text-[12.5px]">
+        {pending ? "Saving…" : "Save notes"}
       </button>
     </form>
   );

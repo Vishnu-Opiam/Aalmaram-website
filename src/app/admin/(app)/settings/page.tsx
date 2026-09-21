@@ -1,4 +1,4 @@
-import { requireOwner } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
 import { formatDateTime } from "@/lib/format";
 import { isShiprocketConfigured } from "@/lib/shiprocket";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -16,7 +16,7 @@ const rupees = (paise: unknown) => {
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
 export default async function StoreSettingsPage() {
-  await requireOwner();
+  await requireAdmin();
 
   const { data: rows } = await createAdminClient().from("settings").select("key, value");
   const get = (key: string) => ((rows ?? []).find((r) => r.key === key)?.value ?? {}) as Obj;
@@ -26,7 +26,7 @@ export default async function StoreSettingsPage() {
   const shipping = get("shipping");
   const inventory = get("inventory");
   const features = get("features");
-  const shiprocket = get("shiprocket");
+  const shiprocket = get("Shiprocket");
 
   const overrides = Object.entries((shipping.state_overrides ?? {}) as Record<string, number>).map(([state, paise]) => ({
     state,
@@ -35,8 +35,8 @@ export default async function StoreSettingsPage() {
   const tokenExpires = str(shiprocket.token_expires_at);
 
   return (
-    <div className="space-y-16 max-w-[860px]">
-      <section>
+    <div className="space-y-4 max-w-[860px]">
+      <section className="admin-card p-5 sm:p-6">
         <SectionTitle hint="What buyers see, and where email comes from.">Store</SectionTitle>
         <StoreForm
           values={{
@@ -56,7 +56,7 @@ export default async function StoreSettingsPage() {
         />
       </section>
 
-      <section>
+      <section className="admin-card p-5 sm:p-6">
         <SectionTitle hint="Worked out on the server at checkout — the buyer's browser never sets it.">Shipping</SectionTitle>
         <ShippingForm
           flatRate={rupees(shipping.flat_rate_paise)}
@@ -65,9 +65,9 @@ export default async function StoreSettingsPage() {
         />
       </section>
 
-      <section>
+      <section className="admin-card p-5 sm:p-6">
         <SectionTitle>Shiprocket</SectionTitle>
-        <p className="mt-2 text-[12.5px] font-body font-light opacity-70">
+        <p className="mt-2 text-[12.5px] opacity-70">
           {isShiprocketConfigured() ? (
             <>
               API user configured on the server.{" "}
@@ -88,12 +88,12 @@ export default async function StoreSettingsPage() {
         />
       </section>
 
-      <section>
+      <section className="admin-card p-5 sm:p-6">
         <SectionTitle>Inventory</SectionTitle>
         <InventoryForm threshold={Number(inventory.low_stock_threshold ?? 5)} />
       </section>
 
-      <section>
+      <section className="admin-card p-5 sm:p-6">
         <SectionTitle>Switches</SectionTitle>
         <FeaturesForm
           checkoutEnabled={features.checkout_enabled !== false}

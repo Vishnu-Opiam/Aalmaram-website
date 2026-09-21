@@ -66,13 +66,13 @@ function Tile({
   note?: string;
 }) {
   return (
-    <div className="p-5 rounded-lg" style={{ background: "rgba(35,47,72,.04)" }}>
-      <div className="text-[10px] tracking-[.24em] font-body opacity-60">{label}</div>
-      <div className="mt-2 font-body text-[28px] leading-none" style={{ color: "var(--night)", fontWeight: 400 }}>
+    <div className="admin-card p-5 sm:p-6">
+      <div className="text-[12px] opacity-60">{label}</div>
+      <div className="mt-2 text-[28px] leading-none" style={{ color: "var(--night)", fontWeight: 400 }}>
         {value}
       </div>
-      <div className="mt-2 text-[11.5px] font-body font-light">{delta}</div>
-      {note && <div className="mt-1 text-[11.5px] font-body font-light opacity-55">{note}</div>}
+      <div className="mt-2 text-[12.5px]">{delta}</div>
+      {note && <div className="mt-1 text-[12.5px] opacity-55">{note}</div>}
     </div>
   );
 }
@@ -105,7 +105,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       <PageTitle>Analytics</PageTitle>
 
       {/* One row of filters, above everything it scopes. */}
-      <div className="mt-6 flex flex-wrap items-center gap-6 text-[11.5px] tracking-[.22em] font-body">
+      <div className="mt-6 flex flex-wrap items-center gap-6 text-[12.5px]">
         {RANGES.map((r) => (
           <Link
             key={r}
@@ -120,34 +120,34 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
             LAST {r} DAYS
           </Link>
         ))}
-        <span className="text-[11.5px] tracking-normal font-light opacity-55">
+        <span className="text-[12.5px] tracking-normal opacity-55">
           Indian days, compared with the {days} before. Refunds count on the day the money went back.
         </span>
       </div>
 
       <section className="mt-8 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Tile
-          label="NET REVENUE"
+          label="Net revenue"
           value={formatPaise(net(cur))}
           delta={<Delta now={net(cur)} before={net(prev)} format="money" />}
           note={cur.refunded_paise ? `${formatPaise(cur.gross_paise)} gross, ${formatPaise(cur.refunded_paise)} refunded` : undefined}
         />
-        <Tile label="ORDERS" value={cur.orders.toLocaleString("en-IN")} delta={<Delta now={cur.orders} before={prev.orders} format="count" />} />
+        <Tile label="Orders" value={cur.orders.toLocaleString("en-IN")} delta={<Delta now={cur.orders} before={prev.orders} format="count" />} />
         <Tile
-          label="AVERAGE ORDER"
+          label="Average order"
           value={cur.orders ? formatPaise(aov(cur)) : "—"}
           delta={<Delta now={cur.orders ? aov(cur) : null} before={prev.orders ? aov(prev) : null} format="money" />}
         />
-        <Tile label="COPIES SOLD" value={cur.units.toLocaleString("en-IN")} delta={<Delta now={cur.units} before={prev.units} format="count" />} note="less any restocked" />
+        <Tile label="Copies sold" value={cur.units.toLocaleString("en-IN")} delta={<Delta now={cur.units} before={prev.units} format="count" />} note="less any restocked" />
         <Tile
-          label="CHECKOUT → ORDER"
+          label="Checkout → order"
           value={conv === null ? "—" : `${Math.round(conv * 100)}%`}
           delta={<Delta now={conv} before={conversion(prev)} format="points" />}
           note={`${cur.checkouts_completed} of ${cur.checkouts_started} who pressed Pay`}
         />
       </section>
 
-      <section className="mt-12">
+      <section className="admin-card p-5 sm:p-6 mt-4">
         <SectionTitle hint={cur.orders === 0 ? "No paid orders in this period yet." : "Hover or use the arrow keys for a day's figures."}>
           Net revenue by day
         </SectionTitle>
@@ -156,19 +156,19 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </div>
       </section>
 
-      <div className="mt-14 grid lg:grid-cols-2 gap-12">
-        <section>
+      <div className="mt-6 grid lg:grid-cols-2 gap-4">
+        <section className="admin-card p-5 sm:p-6">
           <SectionTitle hint="By copies sold in the period.">Top products</SectionTitle>
           {a.top_products.length === 0 ? (
-            <p className="mt-4 font-body font-light text-[13.5px] opacity-60">Nothing sold yet.</p>
+            <p className="mt-4 text-[13.5px] opacity-60">Nothing sold yet.</p>
           ) : (
-            <table className="mt-4 w-full text-left font-body text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <table className="w-full text-left text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
               <thead>
-                <tr className="text-[10px] tracking-[.22em] opacity-60">
-                  <th className="py-2 pr-4 font-normal">PRODUCT</th>
-                  <th className="py-2 pr-4 font-normal text-right">COPIES</th>
-                  <th className="py-2 pr-4 font-normal text-right">ORDERS</th>
-                  <th className="py-2 font-normal text-right">REVENUE</th>
+                <tr>
+                  <th className="py-2 pr-4 font-normal">Product</th>
+                  <th className="py-2 pr-4 font-normal text-right">Copies</th>
+                  <th className="py-2 pr-4 font-normal text-right">Orders</th>
+                  <th className="py-2 font-normal text-right">Revenue</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,20 +185,20 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           )}
         </section>
 
-        <section>
+        <section className="admin-card p-5 sm:p-6">
           <SectionTitle hint={totalDiscount ? `${formatPaise(totalDiscount)} given away in the period.` : "Codes used on paid orders in the period."}>
             Discount codes
           </SectionTitle>
           {a.discounts.length === 0 ? (
-            <p className="mt-4 font-body font-light text-[13.5px] opacity-60">No codes used.</p>
+            <p className="mt-4 text-[13.5px] opacity-60">No codes used.</p>
           ) : (
-            <table className="mt-4 w-full text-left font-body text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <table className="w-full text-left text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
               <thead>
-                <tr className="text-[10px] tracking-[.22em] opacity-60">
-                  <th className="py-2 pr-4 font-normal">CODE</th>
-                  <th className="py-2 pr-4 font-normal text-right">ORDERS</th>
-                  <th className="py-2 pr-4 font-normal text-right">DISCOUNT</th>
-                  <th className="py-2 font-normal text-right">REVENUE</th>
+                <tr>
+                  <th className="py-2 pr-4 font-normal">Code</th>
+                  <th className="py-2 pr-4 font-normal text-right">Orders</th>
+                  <th className="py-2 pr-4 font-normal text-right">Discount</th>
+                  <th className="py-2 font-normal text-right">Revenue</th>
                 </tr>
               </thead>
               <tbody>
@@ -218,18 +218,18 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </section>
       </div>
 
-      <section className="mt-14">
+      <section className="admin-card p-5 sm:p-6 mt-4">
         <SectionTitle hint={`At or below ${a.low_stock_threshold} copies. Change the threshold in Settings.`}>Low stock</SectionTitle>
         {a.low_stock.length === 0 ? (
-          <p className="mt-4 font-body font-light text-[13.5px] opacity-60">Everything is above the threshold.</p>
+          <p className="mt-4 text-[13.5px] opacity-60">Everything is above the threshold.</p>
         ) : (
-          <ul className="mt-4 space-y-2 text-[13.5px] font-body">
+          <ul className="mt-4 space-y-2 text-[13.5px]">
             {a.low_stock.map((v) => (
               <li key={`${v.product_id}-${v.sku}-${v.title}`} className="flex gap-4">
                 <Link href={`/admin/products/${v.product_id}`} className="qlink">
                   {v.title}
                 </Link>
-                <span className="font-light opacity-75">
+                <span className="opacity-75">
                   {v.available} left{v.sku ? ` · ${v.sku}` : ""}
                 </span>
               </li>

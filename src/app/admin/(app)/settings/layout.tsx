@@ -1,15 +1,15 @@
-import { requireOwner } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
 import { PageTitle } from "../ui";
 import SettingsNav from "./SettingsNav";
 
-/** Owners only. Each page checks again — a layout does not guard its pages' actions. */
+/** Every admin (owners and store managers). Each page checks again — a layout does not guard its pages' actions. */
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
-  await requireOwner();
+  await requireAdmin();
   return (
     <div>
       <PageTitle>Settings</PageTitle>
       <SettingsNav />
-      <div className="mt-10">{children}</div>
+      <div className="mt-6">{children}</div>
     </div>
   );
 }

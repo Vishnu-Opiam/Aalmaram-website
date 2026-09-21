@@ -34,9 +34,13 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   const admin = createAdminClient();
   const { data: adminUser } = await admin
     .from("admin_users")
-    .select("id, email, role, name")
+    .select("id, email, role, name, revoked_at")
     .eq("email", email)
     .maybeSingle();
+
+  // Revoked by an owner: the row stays for the record, but it opens nothing —
+  // and it also stops the allowlist below from re-admitting them.
+  if (adminUser?.revoked_at) return null;
 
   if (adminUser) {
     return {
@@ -80,14 +84,18 @@ export async function requireAdmin(): Promise<AdminSession> {
 }
 
 /**
- * For settings and the team: owners only. Staff run the shop day to day but
- * cannot change what it charges, where it sends events, or who gets in.
+ * For the Employees page: owners (admins) only. Store managers ("staff" in the
+ * database) have the same access to the store as owners, including settings —
+ * the one thing they cannot do is decide who else gets in.
  */
 export async function requireOwner(): Promise<AdminSession> {
   const session = await requireAdmin();
   if (session.role !== "owner") redirect("/admin?denied=owner");
   return session;
 }
+
+/** What the admin calls each role. The database keeps `owner` and `staff`. */
+export const ROLE_LABELS: Record<string, string> = { owner: "Admin", staff: "Store manager" };
 
 /** For route handlers, which answer with 401 rather than a redirect. */
 export async function requireAdminApi(): Promise<AdminSession | null> {

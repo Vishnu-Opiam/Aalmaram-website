@@ -63,7 +63,7 @@ export async function sendOrderConfirmation(
       from,
       to,
       replyTo: supportEmail,
-      subject: `Your Aalmaram order ${props.orderNumber}`,
+      subject: `Your order is confirmed · Aalmaram ${props.orderNumber}`,
       react: OrderConfirmation({ ...props, supportEmail }),
     });
 

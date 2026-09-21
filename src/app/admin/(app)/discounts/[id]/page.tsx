@@ -42,7 +42,7 @@ export default async function EditDiscountPage({
 
   return (
     <div>
-      <BackLink href="/admin/discounts">DISCOUNTS</BackLink>
+      <BackLink href="/admin/discounts">Discounts</BackLink>
 
       <div className="mt-5">
         <PageTitle
@@ -53,8 +53,8 @@ export default async function EditDiscountPage({
               <form action={setDiscountActive}>
                 <input type="hidden" name="id" value={discount.id} />
                 <input type="hidden" name="active" value={discount.active ? "false" : "true"} />
-                <button type="submit" className="qlink text-[11.5px] tracking-[.22em] font-body font-light">
-                  {discount.active ? "DEACTIVATE" : "ACTIVATE"}
+                <button type="submit" className="qlink text-[12.5px]">
+                  {discount.active ? "Deactivate" : "Activate"}
                 </button>
               </form>
             </>
@@ -62,7 +62,7 @@ export default async function EditDiscountPage({
         >
           {discount.code}
         </PageTitle>
-        <p className="mt-2 text-[12.5px] font-body font-light opacity-60">
+        <p className="mt-2 text-[12.5px] opacity-60">
           {describeValue(discount)} · used {discount.used_count}
           {discount.usage_limit !== null ? ` of ${discount.usage_limit}` : ""} times · {link}
         </p>
@@ -75,7 +75,7 @@ export default async function EditDiscountPage({
       )}
 
       {discount.used_count > 0 && (
-        <p className="mt-8 text-[12.5px] font-body font-light p-3 rounded" style={{ background: "rgba(198,161,91,.15)" }}>
+        <p className="mt-8 text-[12.5px] p-3 rounded" style={{ background: "rgba(198,161,91,.15)" }}>
           This code has been used. Changes apply to future orders only; past orders keep the discount they got.
         </p>
       )}
@@ -109,7 +109,7 @@ export default async function EditDiscountPage({
         }}
       />
 
-      <section className="mt-16">
+      <section className="admin-card p-5 sm:p-6 mt-4">
         <SectionTitle
           hint={
             redemptions?.length
@@ -120,40 +120,40 @@ export default async function EditDiscountPage({
           Redemptions
         </SectionTitle>
         {!redemptions?.length ? (
-          <p className="mt-4 text-[13px] font-body font-light opacity-60">Not used yet.</p>
+          <p className="mt-4 text-[13px] opacity-60">Not used yet.</p>
         ) : (
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-left font-body text-[13.5px]">
+          <div className="mt-5 admin-card overflow-x-auto">
+            <table className="w-full text-left text-[13.5px]">
               <thead>
-                <tr className="text-[10px] tracking-[.22em] opacity-60">
-                  <th className="py-3 pr-4 font-normal">ORDER</th>
-                  <th className="py-3 pr-4 font-normal">CUSTOMER</th>
-                  <th className="py-3 pr-4 font-normal">DATE</th>
-                  <th className="py-3 pr-4 font-normal text-right">DISCOUNT</th>
-                  <th className="py-3 font-normal text-right">ORDER TOTAL</th>
+                <tr>
+                  <th className="py-3 pr-4 font-normal">Order</th>
+                  <th className="py-3 pr-4 font-normal">Customer</th>
+                  <th className="py-3 pr-4 font-normal">Date</th>
+                  <th className="py-3 pr-4 font-normal text-right">Discount</th>
+                  <th className="py-3 font-normal text-right">Order total</th>
                 </tr>
               </thead>
               <tbody>
                 {redemptions.map((r) => (
-                  <tr key={r.id} style={{ borderTop: "1px solid rgba(35,47,72,.1)" }}>
+                  <tr key={r.id} style={{ borderTop: "1px solid var(--a-border)" }}>
                     <td className="py-3 pr-4">
                       {r.orders ? (
-                        <Link href={`/admin/orders/${r.orders.id}`} className="font-display italic text-[16px] qlink">
+                        <Link href={`/admin/orders/${r.orders.id}`} className="font-semibold text-[14px] qlink">
                           {r.orders.order_number}
                         </Link>
                       ) : (
                         "—"
                       )}
                       {r.orders?.order_status === "cancelled" && (
-                        <span className="ml-2 text-[11px] opacity-60">cancelled</span>
+                        <span className="ml-2 text-[12px] opacity-60">cancelled</span>
                       )}
                     </td>
-                    <td className="py-3 pr-4 font-light">{r.customer_email}</td>
-                    <td className="py-3 pr-4 font-light opacity-80 whitespace-nowrap">{formatDateTime(r.created_at)}</td>
-                    <td className="py-3 pr-4 text-right font-light">
+                    <td className="py-3 pr-4">{r.customer_email}</td>
+                    <td className="py-3 pr-4 opacity-80 whitespace-nowrap">{formatDateTime(r.created_at)}</td>
+                    <td className="py-3 pr-4 text-right">
                       {r.amount_paise > 0 ? formatPaise(r.amount_paise) : "free shipping"}
                     </td>
-                    <td className="py-3 text-right font-display text-[15px]">
+                    <td className="py-3 text-right font-semibold text-[14px]">
                       {r.orders ? formatPaise(r.orders.total_paise) : "—"}
                     </td>
                   </tr>
@@ -165,7 +165,7 @@ export default async function EditDiscountPage({
       </section>
 
       {discount.used_count === 0 && !redemptions?.length && (
-        <section className="mt-16">
+        <section className="admin-card p-5 sm:p-6 mt-4">
           <DeleteDiscountButton id={discount.id} />
         </section>
       )}

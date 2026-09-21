@@ -69,7 +69,8 @@ function toCartItem(product: StorefrontProduct, variantId?: string): CartItem | 
     productId: product.id,
     handle: product.handle,
     title: product.title,
-    subtitle: product.subtitle,
+    // With more than one variant, the variant is what tells two lines apart.
+    subtitle: product.variants.length > 1 ? variant.title : product.subtitle,
     pricePaise: variant.pricePaise,
     compareAtPaise: variant.compareAtPaise,
     qty: 1,

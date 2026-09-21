@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Notice, Pill, SectionTitle, inputClass, labelClass, type Tone } from "../ui";
+import { Notice, Pill, SectionTitle, inputClass, labelClass, type Tone, sentence } from "../ui";
 import type { ActionState } from "./actions";
 import {
   assignShipmentAwb,
@@ -46,7 +46,7 @@ export const SHIPMENT_TONE: Record<string, Tone> = {
 };
 
 export function ShipmentPill({ status }: { status: string }) {
-  return <Pill tone={SHIPMENT_TONE[status] ?? "quiet"}>{status.replace(/_/g, " ").toUpperCase()}</Pill>;
+  return <Pill tone={SHIPMENT_TONE[status] ?? "quiet"}>{sentence(status)}</Pill>;
 }
 
 function confirmFirst(message: string) {
@@ -78,9 +78,9 @@ export function CreateShipmentPanel({
         <button
           type="submit"
           disabled={quoting}
-          className="qlink text-[11.5px] tracking-[.22em] font-body font-light"
+          className="qlink text-[12.5px]"
         >
-          {quoting ? "ASKING SHIPROCKET…" : "WHO CAN CARRY IT? ↗"}
+          {quoting ? "Asking Shiprocket…" : "Who can carry it? ↗"}
         </button>
       </form>
       <Notice error={quote.error} ok={quote.ok} />
@@ -94,19 +94,19 @@ export function CreateShipmentPanel({
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <label className="block">
-            <span className={labelClass}>WEIGHT (KG)</span>
+            <span className={labelClass}>Weight (kg)</span>
             <input name="weight_kg" inputMode="decimal" defaultValue={parcel.weightKg} className={inputClass} />
           </label>
           <label className="block">
-            <span className={labelClass}>LENGTH (CM)</span>
+            <span className={labelClass}>Length (cm)</span>
             <input name="length_cm" inputMode="decimal" defaultValue={parcel.lengthCm} className={inputClass} />
           </label>
           <label className="block">
-            <span className={labelClass}>BREADTH (CM)</span>
+            <span className={labelClass}>Breadth (cm)</span>
             <input name="breadth_cm" inputMode="decimal" defaultValue={parcel.breadthCm} className={inputClass} />
           </label>
           <label className="block">
-            <span className={labelClass}>HEIGHT (CM)</span>
+            <span className={labelClass}>Height (cm)</span>
             <input name="height_cm" inputMode="decimal" defaultValue={parcel.heightCm} className={inputClass} />
           </label>
         </div>
@@ -116,7 +116,7 @@ export function CreateShipmentPanel({
         <button
           type="submit"
           disabled={pending}
-          className="btn-night px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal"
+          className="btn-night px-4 py-2.5 text-[13px]"
         >
           {pending ? "Creating…" : "Create shipment"}
         </button>
@@ -143,7 +143,7 @@ export function ShipmentCard({ orderId, shipment }: { orderId: string; shipment:
         <ShipmentPill status={shipment.status} />
       </div>
 
-      <dl className="space-y-2 text-[12.5px] font-body font-light break-all">
+      <dl className="space-y-2 text-[12.5px] break-all">
         <Line label="Courier" value={shipment.courierName ?? "—"} />
         <Line label="AWB" value={shipment.awbCode ?? "not assigned yet"} />
         <Line label="Shiprocket order" value={shipment.shiprocketOrderId ?? "—"} />
@@ -151,7 +151,7 @@ export function ShipmentCard({ orderId, shipment }: { orderId: string; shipment:
         {shipment.statusDetail && <Line label="Latest" value={shipment.statusDetail} />}
       </dl>
 
-      <div className="flex flex-wrap items-center gap-5 text-[11.5px] tracking-[.22em] font-body font-light">
+      <div className="flex flex-wrap items-center gap-5 text-[12.5px]">
         {shipment.trackingUrl && (
           <a href={shipment.trackingUrl} target="_blank" rel="noreferrer" className="qlink">
             TRACK ↗
@@ -169,18 +169,18 @@ export function ShipmentCard({ orderId, shipment }: { orderId: string; shipment:
           <input type="hidden" name="order_id" value={orderId} />
           <input type="hidden" name="shipment_id" value={shipment.id} />
           <label className="block max-w-[220px]">
-            <span className={labelClass}>COURIER ID (OPTIONAL)</span>
+            <span className={labelClass}>Courier ID (optional)</span>
             <input name="courier_id" inputMode="numeric" placeholder="cheapest" className={inputClass} />
           </label>
           <Notice error={awb.error} ok={awb.ok} />
           <button
             type="submit"
             disabled={assigning}
-            className="btn-night px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal"
+            className="btn-night px-4 py-2.5 text-[13px]"
           >
             {assigning ? "Assigning…" : "Assign AWB"}
           </button>
-          <p className="text-[12px] font-body font-light opacity-60">
+          <p className="text-[12px] opacity-60">
             Leave the courier blank to take Shiprocket&rsquo;s recommendation. This is what sends the
             customer their tracking email.
           </p>
@@ -195,9 +195,9 @@ export function ShipmentCard({ orderId, shipment }: { orderId: string; shipment:
             <button
               type="submit"
               disabled={picking}
-              className="qlink text-[11.5px] tracking-[.22em] font-body font-light"
+              className="qlink text-[12.5px]"
             >
-              {picking ? "BOOKING…" : "BOOK A PICKUP"}
+              {picking ? "Booking…" : "Book a pickup"}
             </button>
           </form>
           <form action={refreshAction}>
@@ -206,9 +206,9 @@ export function ShipmentCard({ orderId, shipment }: { orderId: string; shipment:
             <button
               type="submit"
               disabled={refreshing}
-              className="qlink text-[11.5px] tracking-[.22em] font-body font-light"
+              className="qlink text-[12.5px]"
             >
-              {refreshing ? "CHECKING…" : "REFRESH FROM SHIPROCKET"}
+              {refreshing ? "Checking…" : "Refresh from Shiprocket"}
             </button>
           </form>
         </div>
@@ -226,14 +226,14 @@ export function ShipmentCard({ orderId, shipment }: { orderId: string; shipment:
           <input type="hidden" name="order_id" value={orderId} />
           <input type="hidden" name="shipment_id" value={shipment.id} />
           <label className="block">
-            <span className={labelClass}>REASON</span>
+            <span className={labelClass}>Reason</span>
             <input name="reason" placeholder="Booked the wrong box" className={inputClass} />
           </label>
           <Notice error={cancel.error} ok={cancel.ok} />
           <button
             type="submit"
             disabled={cancelling}
-            className="px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal rounded"
+            className="px-7 py-3 text-[12.5px] font-normal rounded"
             style={{ color: "var(--spice)", border: "1px solid rgba(164,66,44,.4)" }}
           >
             {cancelling ? "Cancelling…" : "Cancel shipment"}
@@ -242,7 +242,7 @@ export function ShipmentCard({ orderId, shipment }: { orderId: string; shipment:
       )}
 
       {shipment.shippedAt && live && (
-        <p className="text-[12px] font-body font-light opacity-60">
+        <p className="text-[12px] opacity-60">
           This parcel has left us, so it can no longer be cancelled — a return comes back as an RTO.
         </p>
       )}

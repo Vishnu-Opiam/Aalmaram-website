@@ -50,37 +50,37 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
 
   return (
     <div>
-      <BackLink href="/admin/customers">CUSTOMERS</BackLink>
+      <BackLink href="/admin/customers">Customers</BackLink>
       <div className="mt-5">
-        <PageTitle aside={customer.accepts_marketing ? <Pill tone="good">OPTED IN</Pill> : undefined}>{name}</PageTitle>
-        <p className="mt-2 text-[12.5px] font-body font-light opacity-60">
+        <PageTitle aside={customer.accepts_marketing ? <Pill tone="good">Opted in</Pill> : undefined}>{name}</PageTitle>
+        <p className="mt-2 text-[12.5px] opacity-60">
           Customer since {formatDate(customer.created_at)} · {customer.total_orders} order
           {customer.total_orders === 1 ? "" : "s"} · {formatPaise(Number(customer.total_spent_paise))} spent
           {discountCodes.length ? ` · used ${discountCodes.join(", ")}` : ""}
         </p>
       </div>
 
-      <div className="mt-10 grid lg:grid-cols-12 gap-12">
-        <section className="lg:col-span-7">
+      <div className="mt-6 grid lg:grid-cols-12 gap-4">
+        <section className="admin-card p-5 sm:p-6 lg:col-span-7">
           <SectionTitle>Orders</SectionTitle>
           {!orders?.length ? (
-            <p className="mt-4 text-[13px] font-body font-light opacity-60">No orders.</p>
+            <p className="mt-4 text-[13px] opacity-60">No orders.</p>
           ) : (
             <ul className="mt-5 divide-y" style={{ borderColor: "rgba(35,47,72,.1)" }}>
               {orders.map((order) => (
                 <li key={order.id} className="py-4 flex flex-wrap items-center gap-4 justify-between">
                   <div>
-                    <Link href={`/admin/orders/${order.id}`} className="font-display italic text-[17px] qlink">
+                    <Link href={`/admin/orders/${order.id}`} className="font-semibold text-[14px] qlink">
                       {order.order_number}
                     </Link>
-                    <div className="text-[11.5px] font-body font-light opacity-60">
+                    <div className="text-[12.5px] opacity-60">
                       {formatDateTime(order.placed_at ?? order.created_at)}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <PaymentPill status={order.payment_status} />
                     <FulfilmentPill status={order.fulfillment_status} />
-                    <span className="font-display text-[16px] w-24 text-right">{formatPaise(order.total_paise)}</span>
+                    <span className="font-semibold text-[14px] w-24 text-right">{formatPaise(order.total_paise)}</span>
                   </div>
                 </li>
               ))}
@@ -88,10 +88,10 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
           )}
         </section>
 
-        <aside className="lg:col-span-5 space-y-12">
-          <section>
+        <aside className="lg:col-span-5 space-y-4">
+          <section className="admin-card p-5 sm:p-6">
             <SectionTitle>Contact</SectionTitle>
-            <div className="mt-4 text-[13.5px] font-body font-light space-y-1">
+            <div className="mt-4 text-[13.5px] space-y-1">
               <div>
                 <a href={`mailto:${customer.email}`} className="qlink">
                   {customer.email}
@@ -101,7 +101,7 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
             </div>
           </section>
 
-          <section>
+          <section className="admin-card p-5 sm:p-6">
             <SectionTitle>Marketing</SectionTitle>
             <div className="mt-4">
               <MarketingToggle
@@ -113,9 +113,9 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
           </section>
 
           {addresses.length > 0 && (
-            <section>
+            <section className="admin-card p-5 sm:p-6">
               <SectionTitle>Addresses</SectionTitle>
-              <ul className="mt-4 space-y-4 text-[13.5px] font-body font-light leading-relaxed">
+              <ul className="mt-4 space-y-4 text-[13.5px] leading-relaxed">
                 {addresses.map((a, i) => (
                   <li key={i}>
                     {[a.name, a.line1, a.line2, [a.city, a.state].filter(Boolean).join(", "), a.pincode]
@@ -131,7 +131,7 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
             </section>
           )}
 
-          <section>
+          <section className="admin-card p-5 sm:p-6">
             <SectionTitle>Notes</SectionTitle>
             <div className="mt-4">
               <CustomerNotesForm id={customer.id} notes={customer.notes} />

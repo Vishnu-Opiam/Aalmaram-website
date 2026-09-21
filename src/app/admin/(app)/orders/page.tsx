@@ -56,9 +56,9 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
     <div>
       <PageTitle>Orders</PageTitle>
 
-      <form action="/admin/orders" className="mt-8 flex flex-wrap items-end gap-5">
+      <form action="/admin/orders" className="mt-6 admin-card p-4 flex flex-wrap items-end gap-4">
         <label className="block flex-1 min-w-[220px]">
-          <span className="text-[10px] tracking-[.24em] font-body opacity-70">SEARCH</span>
+          <span className="text-[13px] font-medium">Search</span>
           <input
             type="search"
             name="q"
@@ -68,7 +68,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
           />
         </label>
         <label className="block">
-          <span className="text-[10px] tracking-[.24em] font-body opacity-70">PAYMENT</span>
+          <span className="text-[13px] font-medium">Payment</span>
           <select name="payment" defaultValue={payment ?? ""} className={inputClass}>
             <option value="">Any</option>
             {PAYMENT.map((p) => (
@@ -79,7 +79,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
           </select>
         </label>
         <label className="block">
-          <span className="text-[10px] tracking-[.24em] font-body opacity-70">FULFILMENT</span>
+          <span className="text-[13px] font-medium">Fulfilment</span>
           <select name="fulfillment" defaultValue={fulfillment ?? ""} className={inputClass}>
             <option value="">Any</option>
             {FULFILMENT.map((f) => (
@@ -89,12 +89,12 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
             ))}
           </select>
         </label>
-        <button type="submit" className="btn-night px-7 py-3 text-[11.5px] tracking-[.24em] font-body font-normal">
+        <button type="submit" className="btn-night px-4 py-2.5 text-[13px]">
           Filter
         </button>
         {filtered && (
-          <Link href="/admin/orders" className="qlink text-[11.5px] tracking-[.22em] font-body font-light pb-3">
-            CLEAR
+          <Link href="/admin/orders" className="qlink text-[13px] font-medium pb-2.5">
+            Clear
           </Link>
         )}
       </form>
@@ -106,21 +106,21 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
       )}
 
       {!orders?.length ? (
-        <p className="mt-12 font-body font-light text-[14px] opacity-60">
+        <p className="mt-6 admin-card px-6 py-10 text-center text-[14px] opacity-70">
           {filtered ? "No orders match that." : "No orders yet. They appear here the moment a payment goes through."}
         </p>
       ) : (
-        <div className="mt-10 overflow-x-auto">
-          <table className="w-full text-left font-body text-[13.5px]">
+        <div className="mt-4 admin-card overflow-x-auto">
+          <table className="w-full text-left text-[13.5px]">
             <thead>
-              <tr className="text-[10px] tracking-[.22em] opacity-60">
-                <th className="py-3 pr-4 font-normal">ORDER</th>
-                <th className="py-3 pr-4 font-normal">DATE</th>
-                <th className="py-3 pr-4 font-normal">CUSTOMER</th>
-                <th className="py-3 pr-4 font-normal text-right">ITEMS</th>
-                <th className="py-3 pr-4 font-normal text-right">TOTAL</th>
-                <th className="py-3 pr-4 font-normal">PAYMENT</th>
-                <th className="py-3 font-normal">FULFILMENT</th>
+              <tr>
+                <th className="py-3 pr-4 font-normal">Order</th>
+                <th className="py-3 pr-4 font-normal">Date</th>
+                <th className="py-3 pr-4 font-normal">Customer</th>
+                <th className="py-3 pr-4 font-normal text-right">Items</th>
+                <th className="py-3 pr-4 font-normal text-right">Total</th>
+                <th className="py-3 pr-4 font-normal">Payment</th>
+                <th className="py-3 font-normal">Fulfilment</th>
               </tr>
             </thead>
             <tbody>
@@ -128,24 +128,24 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                 const address = (order.shipping_address ?? {}) as { name?: string };
                 const units = order.order_items.reduce((sum, i) => sum + i.quantity, 0);
                 return (
-                  <tr key={order.id} style={{ borderTop: "1px solid rgba(35,47,72,.1)" }}>
+                  <tr key={order.id} style={{ borderTop: "1px solid var(--a-border)" }}>
                     <td className="py-4 pr-4">
-                      <Link href={`/admin/orders/${order.id}`} className="font-display italic text-[17px] qlink">
+                      <Link href={`/admin/orders/${order.id}`} className="font-semibold text-[14px] qlink">
                         {order.order_number}
                       </Link>
                     </td>
-                    <td className="py-4 pr-4 font-light whitespace-nowrap opacity-80">
+                    <td className="py-4 pr-4 whitespace-nowrap opacity-80">
                       {formatDateTime(order.placed_at ?? order.created_at)}
                     </td>
-                    <td className="py-4 pr-4 font-light">
+                    <td className="py-4 pr-4">
                       <div>{address.name || "—"}</div>
-                      <div className="text-[11.5px] opacity-60">{order.email}</div>
+                      <div className="text-[12.5px] opacity-60">{order.email}</div>
                     </td>
-                    <td className="py-4 pr-4 text-right font-light">{units}</td>
-                    <td className="py-4 pr-4 text-right font-display text-[16px] whitespace-nowrap">
+                    <td className="py-4 pr-4 text-right">{units}</td>
+                    <td className="py-4 pr-4 text-right font-semibold text-[14px] whitespace-nowrap">
                       {formatPaise(order.total_paise)}
                       {order.refunded_paise > 0 && (
-                        <div className="text-[11px] font-body font-light opacity-60">
+                        <div className="text-[12px] opacity-60">
                           −{formatPaise(order.refunded_paise)} refunded
                         </div>
                       )}
@@ -171,7 +171,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
         pageCount={pageCount}
       />
       {count !== null && count > 0 && (
-        <p className="mt-3 text-[11.5px] font-body font-light opacity-50">
+        <p className="mt-3 text-[12.5px] opacity-50">
           {count} order{count === 1 ? "" : "s"}
         </p>
       )}
