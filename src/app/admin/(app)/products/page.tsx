@@ -61,7 +61,8 @@ export default async function AdminProductsPage({
 
   let all = products ?? [];
   const skuIds = new Set((skuHits ?? []).map((s) => s.product_id));
-  const missing = [...skuIds].filter((id) => !all.some((p) => p.id === id));
+  const loaded = new Set(all.map((p) => p.id));
+  const missing = [...skuIds].filter((id) => !loaded.has(id));
   if (missing.length) {
     const { data: extra } = await db
       .from("products")

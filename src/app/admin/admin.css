@@ -112,3 +112,37 @@
 
 /* <details> summaries used as disclosure toggles */
 .admin-shell summary { font-size: 13px; font-weight: 500; }
+
+/* ── Loading skeletons ─────────────────────────────────────────
+   Shown the instant a link is clicked (loading.tsx) while the server
+   fetches the page, so navigation never feels frozen. */
+.admin-skel {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--a-hover) 0%, #ebe8e0 50%, var(--a-hover) 100%);
+  background-size: 200% 100%;
+  animation: admin-skel 1.2s ease-in-out infinite;
+}
+@keyframes admin-skel {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* A thin bar across the top while a nav click is in flight. */
+.admin-nav-pending {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 60;
+  background: var(--a-accent);
+  transform-origin: left;
+  animation: admin-nav-pending 1.4s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes admin-nav-pending {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-skel, .admin-nav-pending { animation: none; }
+}

@@ -45,9 +45,11 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() checks the token's signature locally against the cached
+  // signing keys (and refreshes an expired session), so this runs on every
+  // admin click and prefetch without a round trip to Supabase Auth.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
 
   const { pathname } = request.nextUrl;
 

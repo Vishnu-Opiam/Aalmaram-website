@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { adminAllowlist } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -19,14 +20,20 @@ export interface AdminSession {
  * session, and an email that is either in `admin_users` or in
  * `ADMIN_ALLOWLIST` (the bootstrap path, before the first row exists).
  *
- * `getUser()` rather than `getSession()` — the former revalidates the token
- * with Supabase, the latter trusts a cookie the browser handed us.
+ * `getClaims()` verifies the access token's signature against the project's
+ * published (asymmetric) signing keys, which are cached in memory — so unlike
+ * `getUser()` it costs no round trip to Supabase Auth on every page. It never
+ * trusts an unverified cookie the way `getSession()` would. Revoking someone is
+ * still immediate: `admin_users.revoked_at` is read fresh below.
+ *
+ * Wrapped in `cache()` so the layout, a nested layout and the page share one
+ * lookup per request instead of repeating it three times.
  */
-export async function getAdminSession(): Promise<AdminSession | null> {
+export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  const user = claims?.sub ? { id: claims.sub, email: typeof claims.email === "string" ? claims.email : "" } : null;
 
   if (!user?.email) return null;
 
@@ -74,7 +81,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   }
 
   return null;
-}
+});
 
 /** For admin pages. Sends anyone else to the login screen. */
 export async function requireAdmin(): Promise<AdminSession> {

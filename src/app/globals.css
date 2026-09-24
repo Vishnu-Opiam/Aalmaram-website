@@ -454,3 +454,6 @@ input { background: transparent; }
 .legal-prose li { margin-bottom: 0.35rem; }
 .legal-prose a { color: var(--kathakali); text-decoration: underline; text-underline-offset: 3px; }
 .legal-prose strong { font-weight: 500; color: var(--night); }
+.qty.qty-sm button { width: 28px; height: 28px; font-size: 14px; }
+.qty button:disabled { opacity: .35; cursor: not-allowed; }
+.qty button:disabled:hover { background: transparent; }

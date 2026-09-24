@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NavPending from "./NavPending";
 
 export interface NavItem {
   href: string;
@@ -93,6 +94,7 @@ export default function AdminNav({ items, variant }: { items: NavItem[]; variant
           >
             <NavIcon name={item.icon} />
             {item.label}
+            <NavPending />
           </Link>
         ))}
       </nav>
@@ -110,6 +112,7 @@ export default function AdminNav({ items, variant }: { items: NavItem[]; variant
         >
           <NavIcon name={item.icon} />
           {item.label}
+          <NavPending />
         </Link>
       ))}
     </nav>

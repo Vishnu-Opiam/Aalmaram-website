@@ -60,7 +60,7 @@ const label = "text-[10px] tracking-[.24em] font-body opacity-70";
 
 export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabled?: boolean }) {
   const router = useRouter();
-  const { items, clearCart } = useCart();
+  const { items, clearCart, changeQty, removeItem } = useCart();
 
   const [discountCode, setDiscountCode] = useState("");
   const [deliveryState, setDeliveryState] = useState("");
@@ -71,6 +71,9 @@ export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabl
   const [paying, setPaying] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  // Each quote request takes a number; only the latest one may land, so a slow
+  // answer for an old basket never overwrites the figures for the current one.
+  const quoteSeq = useRef(0);
 
   const lines = useMemo(
     () => items.map((it) => ({ variantId: it.variantId, quantity: it.qty })),
@@ -117,6 +120,7 @@ export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabl
   const refreshQuote = useCallback(
     async (code: string | null) => {
       if (lines.length === 0) return;
+      const seq = ++quoteSeq.current;
       setQuoting(true);
       try {
         const response = await fetch("/api/checkout/quote", {
@@ -125,6 +129,7 @@ export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabl
           body: JSON.stringify({ lines, discountCode: code, state: deliveryState || null }),
         });
         const data = await response.json();
+        if (seq !== quoteSeq.current) return;
         if (!response.ok) {
           setError(data.error ?? "Could not price your basket.");
           setQuote(null);
@@ -133,9 +138,9 @@ export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabl
           setQuote(data);
         }
       } catch {
-        setError("Could not reach the server.");
+        if (seq === quoteSeq.current) setError("Could not reach the server.");
       } finally {
-        setQuoting(false);
+        if (seq === quoteSeq.current) setQuoting(false);
       }
     },
     // Picking a state re-quotes: some states have their own shipping rate.
@@ -143,10 +148,11 @@ export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabl
   );
 
   useEffect(() => {
-    // Fetching the server's price on mount is the point of this effect; the
-    // pending flag it sets is what the button reads.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refreshQuote(discountCode || null);
+    // Fetching the server's price is the point of this effect; the pending flag
+    // it sets is what the button reads. A short pause lets a run of +/− clicks
+    // settle into one request instead of one per click.
+    const timer = setTimeout(() => void refreshQuote(discountCode || null), 250);
+    return () => clearTimeout(timer);
     // Re-quoting on every keystroke of the code would be noisy; the code is
     // applied explicitly with the Apply button.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -376,16 +382,60 @@ export default function CheckoutForm({ checkoutEnabled = true }: { checkoutEnabl
               Your order
             </h2>
 
-            <ul className="mt-6 space-y-4">
-              {items.map((it) => (
-                <li key={it.variantId} className="flex justify-between gap-4 text-[14px] font-body">
-                  <span className="font-light">
-                    {it.title}
-                    <span className="opacity-60"> × {it.qty}</span>
-                  </span>
-                  <span className="font-display text-[15px] whitespace-nowrap">
-                    {formatPaise(it.pricePaise * it.qty)}
-                  </span>
+            <ul className="mt-6 space-y-5">
+              {items.map((it, idx) => (
+                <li key={it.variantId} className="flex gap-4 text-[14px] font-body">
+                  <div
+                    className="shrink-0 rounded-sm overflow-hidden"
+                    style={{ width: 44, aspectRatio: "3/4.3", background: "linear-gradient(160deg,#2a3853,#0f1828)" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={it.image} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between gap-4">
+                      <span className="font-light leading-snug">{it.title}</span>
+                      <span className="font-display text-[15px] whitespace-nowrap">
+                        {formatPaise(it.pricePaise * it.qty)}
+                      </span>
+                    </div>
+                    {it.subtitle && (
+                      <div className="mt-0.5 text-[10.5px] tracking-[.2em] font-light opacity-60 truncate">
+                        {it.subtitle}
+                      </div>
+                    )}
+                    <div className="mt-2.5 flex items-center gap-3">
+                      <div className="qty qty-sm flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          aria-label={`One fewer ${it.title}`}
+                          onClick={() => changeQty(idx, -1)}
+                          disabled={paying || it.qty <= 1}
+                        >
+                          −
+                        </button>
+                        <span className="w-6 text-center font-display text-[14px]" aria-live="polite">
+                          {it.qty}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`One more ${it.title}`}
+                          onClick={() => changeQty(idx, 1)}
+                          disabled={paying}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(idx)}
+                        disabled={paying}
+                        className="ml-auto qlink text-[10.5px] tracking-[.22em] font-light opacity-70"
+                      >
+                        REMOVE
+                      </button>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>

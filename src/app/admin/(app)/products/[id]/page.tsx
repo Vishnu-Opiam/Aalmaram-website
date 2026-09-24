@@ -34,13 +34,25 @@ export default async function EditProductPage({
   const { saved, duplicated } = await searchParams;
 
   const db = createAdminClient();
-  const { data: product } = await db
-    .from("products")
-    .select(
-      "id, handle, title, subtitle, description_md, status, tags, product_type, vendor, hsn_code, seo_title, seo_description, product_variants ( id, title, sku, barcode, price_paise, compare_at_paise, cost_paise, inventory_quantity, weight_grams, length_cm, breadth_cm, height_cm, position, created_at ), product_images ( id, url, alt, position, created_at )"
-    )
-    .eq("id", id)
-    .maybeSingle();
+  // Product, its stock history and its order lines are all keyed on the id in
+  // the URL, so they go out together instead of one after another. History is
+  // filtered through its variant's product_id, which needs no variant ids first.
+  const [{ data: product }, { data: history }, { data: soldLines }] = await Promise.all([
+    db
+      .from("products")
+      .select(
+        "id, handle, title, subtitle, description_md, status, tags, product_type, vendor, hsn_code, seo_title, seo_description, product_variants ( id, title, sku, barcode, price_paise, compare_at_paise, cost_paise, inventory_quantity, weight_grams, length_cm, breadth_cm, height_cm, position, created_at ), product_images ( id, url, alt, position, created_at )"
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    db
+      .from("inventory_adjustments")
+      .select("id, variant_id, delta, reason, note, created_by, created_at, product_variants!inner ( product_id )")
+      .eq("product_variants.product_id", id)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    db.from("order_items").select("variant_id").eq("product_id", id),
+  ]);
 
   if (!product) notFound();
 
@@ -51,19 +63,6 @@ export default async function EditProductPage({
     (a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at)
   );
   const variant = variants[0];
-  const variantIds = variants.map((v) => v.id);
-
-  const [{ data: history }, { data: soldLines }] = await Promise.all([
-    variantIds.length
-      ? db
-          .from("inventory_adjustments")
-          .select("id, variant_id, delta, reason, note, created_by, created_at")
-          .in("variant_id", variantIds)
-          .order("created_at", { ascending: false })
-          .limit(30)
-      : Promise.resolve({ data: [] }),
-    db.from("order_items").select("variant_id").eq("product_id", product.id),
-  ]);
 
   const orderedCount = soldLines?.length ?? 0;
   const everOrdered = orderedCount > 0;

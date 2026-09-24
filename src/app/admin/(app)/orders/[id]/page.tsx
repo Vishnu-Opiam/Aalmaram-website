@@ -102,18 +102,24 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const db = createAdminClient();
-  const { data: order } = await db
-    .from("orders")
-    .select(
-      "*, order_items ( id, title, variant_title, sku, quantity, unit_price_paise, total_paise, restocked_quantity, variant_id ), customers ( id, first_name, last_name, total_orders, accepts_marketing )"
-    )
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!order) notFound();
-
-  const [{ data: refunds }, { data: audit }, { data: stockMoves }, { data: outbox }, { data: shipments }] =
-    await Promise.all([
+  // Everything below is keyed on the id in the URL, so it all goes out in one
+  // round trip rather than order first, then history, then parcel defaults.
+  const [
+    { data: order },
+    { data: refunds },
+    { data: audit },
+    { data: stockMoves },
+    { data: outbox },
+    { data: shipments },
+    parcelDefaults,
+  ] = await Promise.all([
+    db
+      .from("orders")
+      .select(
+        "*, order_items ( id, title, variant_title, sku, quantity, unit_price_paise, total_paise, restocked_quantity, variant_id ), customers ( id, first_name, last_name, total_orders, accepts_marketing )"
+      )
+      .eq("id", id)
+      .maybeSingle(),
     db.from("refunds").select("*").eq("order_id", id).order("created_at", { ascending: false }),
     db
       .from("audit_log")
@@ -132,7 +138,11 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       .eq("payload->>order_id", id)
       .order("created_at", { ascending: false }),
     db.from("shipments").select("*").eq("order_id", id).order("created_at", { ascending: false }),
+    // Only shown when the order can ship, but cheap enough to fetch alongside.
+    parcelDefaultsFor(id),
   ]);
+
+  if (!order) notFound();
 
   const items = [...order.order_items].sort((a, b) => a.title.localeCompare(b.title));
   const address = (order.shipping_address ?? {}) as Record<string, string>;
@@ -154,7 +164,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     inFlight === 0 &&
     ["paid", "partially_refunded"].includes(order.payment_status) &&
     !["cancelled", "returned"].includes(order.fulfillment_status);
-  const parcel = canShip ? await parcelDefaultsFor(order.id) : null;
+  const parcel = canShip ? parcelDefaults : null;
   const shipmentView: ShipmentView | null = liveShipment
     ? {
         id: liveShipment.id,

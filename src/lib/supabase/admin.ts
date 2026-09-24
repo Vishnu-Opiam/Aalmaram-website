@@ -11,12 +11,20 @@ import type { Database } from "@/lib/database.types";
  * `server-only` above makes importing this from a Client Component a build
  * error rather than a leaked key.
  */
+let client: ReturnType<typeof createSupabaseClient<Database>> | undefined;
+
+/**
+ * Unlike the cookie-bound client, this one carries no per-request state (it is
+ * never a user), so one instance is shared by every request on a warm server
+ * instead of building a fresh client for each query.
+ */
 export function createAdminClient() {
-  return createSupabaseClient<Database>(supabaseUrl(), supabaseServiceRoleKey(), {
+  client ??= createSupabaseClient<Database>(supabaseUrl(), supabaseServiceRoleKey(), {
     auth: {
       // Nothing to persist: this client is never a user.
       persistSession: false,
       autoRefreshToken: false,
     },
   });
+  return client;
 }

@@ -42,11 +42,9 @@ export default async function IntegrationsPage({
   const { status: statusFilter } = await searchParams;
 
   const db = createAdminClient();
-  const urls = await resolveWebhookUrls();
-  const { data: integrations } = await db.from("settings").select("value").eq("key", "integrations").maybeSingle();
-  const saved = ((integrations?.value as { webhooks?: Record<string, string> } | null)?.webhooks ?? {}) as Record<string, string>;
-
-  const [{ data: waitingRows }, rowsQuery] = await Promise.all([
+  const [urls, { data: integrations }, { data: waitingRows }, rowsQuery] = await Promise.all([
+    resolveWebhookUrls(),
+    db.from("settings").select("value").eq("key", "integrations").maybeSingle(),
     db.from("webhook_outbox").select("topic").eq("status", "pending"),
     (() => {
       let q = db
@@ -58,7 +56,11 @@ export default async function IntegrationsPage({
       return q;
     })(),
   ]);
-  const waiting = (topic: string) => (waitingRows ?? []).filter((r) => r.topic === topic).length;
+  const saved = ((integrations?.value as { webhooks?: Record<string, string> } | null)?.webhooks ?? {}) as Record<string, string>;
+  // One pass over the queue, not one per topic.
+  const waitingByTopic = new Map<string, number>();
+  for (const r of waitingRows ?? []) waitingByTopic.set(r.topic, (waitingByTopic.get(r.topic) ?? 0) + 1);
+  const waiting = (topic: string) => waitingByTopic.get(topic) ?? 0;
   const rows = rowsQuery.data ?? [];
 
   const keyId = process.env.RAZORPAY_KEY_ID ?? "";

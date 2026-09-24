@@ -33,7 +33,6 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
     { data: recent },
     { data: openRefunds },
     { count: failedOutbox },
-    { data: inventorySetting },
     { data: trend },
   ] = await Promise.all([
     db.rpc("admin_sales_summary"),
@@ -57,25 +56,23 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
       .order("created_at", { ascending: false })
       .limit(20),
     db.from("webhook_outbox").select("id", { count: "exact", head: true }).eq("status", "failed"),
-    db.from("settings").select("value").eq("key", "inventory").maybeSingle(),
+    // Also carries the low-stock list and threshold, so stock needs no second
+    // round trip after this one.
     db.rpc("store_analytics", { p_days: TREND_DAYS }),
   ]);
 
-  const lowStockThreshold = Number(
-    (inventorySetting?.value as { low_stock_threshold?: number } | null)?.low_stock_threshold ?? 5
-  );
-  const { data: lowStock } = await db
-    .from("product_variants")
-    .select("id, title, inventory_quantity, products!inner ( id, title, status )")
-    .lte("inventory_quantity", lowStockThreshold)
-    .neq("products.status", "archived")
-    .order("inventory_quantity", { ascending: true })
-    .limit(10);
+  const analytics = (trend ?? {}) as {
+    daily?: DailyPoint[];
+    low_stock_threshold?: number;
+    low_stock?: { product_id: string; variant_id: string; title: string; available: number }[];
+  };
+  const lowStockThreshold = analytics.low_stock_threshold ?? 5;
+  const lowStock = (analytics.low_stock ?? []).slice(0, 10);
 
   const periods = (summary ?? {}) as { today?: PeriodSummary; week?: PeriodSummary };
   const attention = needsAttention(openRefunds ?? []);
 
-  const daily = ((trend as { daily?: DailyPoint[] } | null)?.daily ?? []) as DailyPoint[];
+  const daily = analytics.daily ?? [];
   const trendNet = daily.reduce((sum, d) => sum + d.net_paise, 0);
   const trendOrders = daily.reduce((sum, d) => sum + d.orders, 0);
   const trendGross = daily.reduce((sum, d) => sum + d.gross_paise, 0);
@@ -320,14 +317,13 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
           ) : (
             <ul className="mt-4 space-y-4">
               {lowStock.map((variant) => {
-                const qty = Math.max(0, variant.inventory_quantity);
+                const qty = Math.max(0, variant.available);
                 const pct = Math.min(100, (qty / Math.max(1, lowStockThreshold)) * 100);
                 return (
-                  <li key={variant.id}>
+                  <li key={variant.variant_id}>
                     <div className="flex items-center justify-between gap-4 text-[13.5px]">
-                      <Link href={`/admin/products/${variant.products.id}`} className="qlink font-medium truncate">
-                        {variant.products.title}
-                        {variant.title !== "Default" ? ` · ${variant.title}` : ""}
+                      <Link href={`/admin/products/${variant.product_id}`} className="qlink font-medium truncate">
+                        {variant.title}
                       </Link>
                       {qty === 0 ? <Pill tone="bad">Sold out</Pill> : <Pill tone="warn">{qty} left</Pill>}
                     </div>
